@@ -123,7 +123,8 @@
   .lessenaar { position: fixed; top: 0; right: 0; bottom: 0; width: var(--paneel); z-index: 4; display: flex; flex-direction: column;
     background: #141416; border-left: 1px solid rgba(255,255,255,.08); overflow: hidden; color: #fff;
     transform: translateX(100%); transition: transform .38s cubic-bezier(.2,.9,.25,1); }
-  .lessenaar.open { transform: none; }
+  /* Eigen klassenaam: .open is het opengeklapte album (opacity 0 tot hij infadet) — daarmee bleef het paneel zwart. */
+  .lessenaar.uitgeklapt { transform: none; }
   .doek { position: absolute; inset: 0; z-index: -1; overflow: hidden; }
   .doek img { position: absolute; inset: -25%; width: 150%; height: 150%; object-fit: cover; filter: blur(48px) saturate(1.85) brightness(.62);
     opacity: 0; transition: opacity 1.5s; }
@@ -648,7 +649,7 @@ try { const v = localStorage.getItem('stacks.lessenaar'); if (v) lesOpen = v ===
 function zetLessenaar(open, bewaar = true) {
   lesOpen = open;
   clearTimeout(lesWacht);
-  les.classList.toggle('open', open);
+  les.classList.toggle('uitgeklapt', open);
   paneelKnop.setAttribute('aria-pressed', open);
   if (open) lesWacht = setTimeout(() => document.body.classList.add('met-paneel'), 240);
   else document.body.classList.remove('met-paneel');
