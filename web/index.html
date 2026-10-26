@@ -197,10 +197,6 @@
   .wissel button { appearance: none; border: 0; background: none; flex: 1; height: 28px; border-radius: 8px; font: inherit; font-size: 12px;
     font-weight: 600; color: rgba(255,255,255,.6); cursor: pointer; }
   .wissel button[aria-pressed="true"] { background: rgba(255,255,255,.16); color: #fff; }
-  .wissel .dicht { display: none; }
-  @media (max-width: 900px) { .wissel .dicht { display: flex; } }
-  .wissel .dicht { flex: 0 0 36px; color: rgba(255,255,255,.6); display: flex; align-items: center; justify-content: center; }
-  .wissel .dicht svg { width: 15px; height: 15px; }
   /* Vast rechtsboven in de kop (René), ook als de kop over twee regels gaat. */
   header { padding-right: calc(var(--rand-r) + 44px); }
   .paneelknop { position: absolute; right: var(--rand-r); top: calc(env(safe-area-inset-top) + 14px); appearance: none; border: 0; background: rgba(255,255,255,.08); color: var(--tekst); width: 32px; height: 28px; border-radius: 8px;
@@ -222,7 +218,8 @@
   .capsule button svg { width: 17px; height: 17px; }
   .capsule button + button svg { width: 15px; height: 15px; opacity: .85; }
   /* Smal (iPad staand, telefoon): het paneel zweeft over de stapel, zoals op Harry. */
-  @media (max-width: 900px) { body.met-paneel { padding-right: 0; } .lessenaar { box-shadow: -10px 0 40px rgba(0,0,0,.5); } }
+  /* Smal zweeft het paneel onder de kop, zodat de knop rechtsboven (het enige open/dicht) bereikbaar blijft. */
+  @media (max-width: 900px) { body.met-paneel { padding-right: 0; } .lessenaar { top: var(--kop-h, 60px); box-shadow: -10px 0 40px rgba(0,0,0,.5); } }
   @media (max-width: 600px) { :root { --paneel: 100vw; } }
   #melding { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 20px); transform: translateX(-50%);
     background: rgba(40,40,46,.92); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); color: var(--tekst);
@@ -274,7 +271,6 @@
   <div class="wissel">
     <button data-gezicht="np" aria-pressed="true">Now Playing</button>
     <button data-gezicht="queue" aria-pressed="false">Queue</button>
-    <button class="dicht" title="Hide" aria-label="Hide Now Playing"></button>
   </div>
 </aside>
 <div id="capsule" class="capsule" role="button" aria-label="Show Now Playing">
@@ -559,6 +555,20 @@ function bouwOpen(a, d) {
 
 // De tracks krijgen voorrang op de volle breedte (René, bij Nightfall en Field: "mooier als het niet naar twee kolommen
 // ging"): eerst één kolom; pas als de achterkant dan hoger wordt dan de voorkant, twee.
+// Opnieuw de maat nemen als de stapel van breedte verandert (René, 26 okt: "bij NP in/uit moet de open uitklapper opnieuw
+// gerenderd worden — anders schaalt hij raar"): de hoes op de halve breedte, en daarna de kolommen tracks.
+let breedteWas = 0;
+new ResizeObserver(() => {
+  const b = stapel.clientWidth;
+  if (!open || Math.abs(b - breedteWas) < 2) { breedteWas = b; return; }
+  breedteWas = b;
+  const o = open.o, kop = document.querySelector('header').offsetHeight;
+  o.breed = b > 600;
+  o.hoes = Math.round(Math.min(b / 2, window.innerHeight - kop - 28));
+  o.el.style.setProperty('--hoes', o.hoes + 'px');
+  kolommen(o);
+}).observe(stapel);
+
 function kolommen(o) {
   const n = o.lijst.children.length;
   o.lijst.classList.remove('twee'); o.lijst.style.gridTemplateRows = ''; o.lijst.style.gridTemplateColumns = '';
@@ -586,7 +596,7 @@ async function openAlbum(rug) {
   bezig = null;
   const o = bouwOpen(a, d);
   await new Promise(ok => { if (o.img.complete) ok(); o.img.onload = o.img.onerror = ok; setTimeout(ok, 800); });
-  open = { sleutel: k, el: o.el, album: a, links: o.links };
+  open = { sleutel: k, el: o.el, album: a, links: o.links, o };
   rug.after(o.el);
   kolommen(o);
   // De rug schuift helemaal naar boven, onder de kop (René, 26 okt: "zoals in Basso — de voorgaande hoezen heb je al
@@ -645,7 +655,7 @@ kiezer.addEventListener('change', () => { zoneId = kiezer.value; try { localStor
 
 // ---- de lessenaar: Now Playing rechts (Basso, Lessenaar.swift) ----
 const les = document.getElementById('lessenaar'), cap = document.getElementById('capsule'), paneelKnop = document.getElementById('paneelKnop');
-paneelKnop.innerHTML = svg('paneel'); les.querySelector('.wissel .dicht').innerHTML = svg('paneel');
+paneelKnop.innerHTML = svg('paneel');
 les.querySelector('.volume .luid').innerHTML = svg('luid');
 let lesOpen = window.innerWidth > 900, lesWacht = null, lesGezicht = 'np', wachtrijNu = [], seekBasis = null;
 try { const v = localStorage.getItem('stacks.lessenaar'); if (v) lesOpen = v === 'open'; } catch {}
@@ -653,6 +663,7 @@ try { const v = localStorage.getItem('stacks.lessenaar'); if (v) lesOpen = v ===
 // Openen: het paneel schuift over de stapel, en pas als het er (bijna) staat wordt de stapel smaller — één wissel.
 // Dichtklappen: de stapel meteen breed, onder het paneel dat wegschuift.
 function zetLessenaar(open, bewaar = true) {
+  document.documentElement.style.setProperty('--kop-h', document.querySelector('header').offsetHeight + 'px');
   lesOpen = open;
   clearTimeout(lesWacht);
   les.classList.toggle('uitgeklapt', open);
@@ -664,7 +675,6 @@ function zetLessenaar(open, bewaar = true) {
   if (open) haalWachtrij();
 }
 paneelKnop.addEventListener('click', () => zetLessenaar(!lesOpen));
-les.querySelector('.wissel .dicht').addEventListener('click', () => zetLessenaar(false));
 cap.addEventListener('click', e => { if (!e.target.closest('button')) zetLessenaar(true); });
 
 // Twee gezichten, een stille crossfade: Now Playing en Queue.
