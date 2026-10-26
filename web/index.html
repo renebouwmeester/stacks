@@ -42,18 +42,15 @@
   /* Met Deep Roon (StapelRug): rechts de speelduur, op een breed scherm het schildje met bitdiepte/samplerate (24/96), en bij de volgorde op
      catalogusnummer dat nummer in een eigen rechterkolom (variant D uit de tekenbank). */
   .rug i { flex: 1 0 8px; }
-  .rug em { flex: 0 0 auto; width: 52px; display: flex; justify-content: flex-end; font-style: normal; }
-  /* Het schildje op zijn eigen breedte, rechts in de kolom — zoals de tijden ernaast (René, 26 okt). */
-  .rug em mark { background: none; font-size: 8px; font-weight: 600; letter-spacing: .6px; font-variant-numeric: tabular-nums;
+  /* Het schildje zoals Basso's HI-RES: op zijn eigen breedte, vlak vóór de speelduur; alleen waar het geen cd-kwaliteit
+     is (René, 26 okt: "dit ligt gevoelig" — een kolom vol 16/44.1 was ruis, een vaste kolom stond niet). */
+  .rug em { flex: 0 0 auto; font-style: normal; font-size: 8px; font-weight: 600; letter-spacing: .6px; font-variant-numeric: tabular-nums;
     color: var(--t2, #fff); opacity: .85; padding: 1px 3px; border: .75px solid color-mix(in srgb, var(--t2, #fff) 55%, transparent); border-radius: 3px; }
   .rug small { font-size: 11px; color: var(--t2, #fff); opacity: .8; font-variant-numeric: tabular-nums; flex: 0 0 auto; }
-  /* Schildje en speelduur elk in een eigen kolom (variant D): beide rechts uitgelijnd. */
-  .rug em + small { width: 76px; text-align: right; }
-  .rug em.leeg { visibility: hidden; }
   .rug small + small { font-size: 10px; font-weight: 500; letter-spacing: .4px; opacity: .7; width: 110px; text-align: right;
     overflow: hidden; text-overflow: ellipsis; }
   .rug small.stil { opacity: .45; }
-  @media (max-width: 700px) { .rug em { display: none; } .rug em + small { width: auto; } }
+  @media (max-width: 1000px) { .rug em { display: none; } }
   @media (max-width: 600px) { .rug small + small { width: auto; max-width: 90px; } }
   .orde { overflow-x: auto; scrollbar-width: none; max-width: 100%; }
   .orde::-webkit-scrollbar { display: none; }
@@ -194,9 +191,9 @@ function vul(el, a) {
   el.children[0].textContent = eerst; el.children[1].textContent = dan;
   el.title = `${namen(a.artist)} — ${a.title}`;
   const h = dikte(a); if (h) el.style.setProperty('--h', h + 'px'); else el.style.removeProperty('--h');
-  // Het schildje: met Deep Roon op elke rug een vak in de kolom, leeg (onzichtbaar) als Roon het formaat niet weet.
-  if (!el.children[3].firstChild) el.children[3].append(document.createElement('mark'));
-  el.children[3].firstChild.textContent = a.fmt ?? ''; el.children[3].hidden = !metDeep; el.children[3].classList.toggle('leeg', !a.fmt);
+  // Het schildje: het echte formaat (24/96, MQA, Mixed …), niet bij cd-kwaliteit.
+  const fmt = a.fmt && a.fmt !== '16/44.1' ? a.fmt : null;
+  el.children[3].textContent = fmt ?? ''; el.children[3].hidden = !fmt;
   el.children[4].textContent = duurTekst(a.len); el.children[4].hidden = !a.len;
   // Het nummer rechts in een eigen kolom: bij de volgorde Catalogue Number (zonder nummer de barcode, stiller), of altijd
   // als dat in Roon zo is ingesteld (dan alleen waar het er is).
