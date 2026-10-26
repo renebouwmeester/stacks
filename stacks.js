@@ -37,6 +37,21 @@ function bewaar() {
 // ---- Roon ----
 let browse = null, image = null, transport = null, kern = null;
 const zones = new Map();
+// De wachtrij per zone, steeds bij (Now Playing en What's Next in de lessenaar; Play From Here zoekt er de track in).
+// Een open abonnement per zone — play_from_here antwoordt alleen met een abonnement dat nog openstaat (log 26 okt).
+const wachtrijen = new Map();
+function volgWachtrij(id) {
+  if (wachtrijen.has(id) || !transport) return;
+  const w = { items: [], abo: null };
+  wachtrijen.set(id, w);
+  w.abo = transport.subscribe_queue(id, 200, (cmd, d) => {
+    if (cmd === 'Subscribed') w.items = d.items ?? [];
+    else if (cmd === 'Changed') for (const c of d.changes ?? []) {
+      if (c.operation === 'remove') w.items.splice(c.index, c.count);
+      else if (c.operation === 'insert') w.items.splice(c.index, 0, ...(c.items ?? []));
+    }
+  });
+}
 let albums = [];          // { title, artist, image }
 let laadt = false;
 
@@ -52,18 +67,18 @@ const roon = new RoonApi({
     kern = core; browse = core.services.RoonApiBrowse; image = core.services.RoonApiImage; transport = core.services.RoonApiTransport;
     log('gekoppeld aan', core.display_name);
     transport.subscribe_zones((cmd, data) => {
-      if (cmd === 'Subscribed') { zones.clear(); for (const z of data.zones ?? []) zones.set(z.zone_id, z); }
+      if (cmd === 'Subscribed') { zones.clear(); wachtrijen.clear(); for (const z of data.zones ?? []) { zones.set(z.zone_id, z); volgWachtrij(z.zone_id); } }
       else if (cmd === 'Changed') {
-        for (const z of data.zones_added ?? []) zones.set(z.zone_id, z);
+        for (const z of data.zones_added ?? []) { zones.set(z.zone_id, z); volgWachtrij(z.zone_id); }
         for (const z of data.zones_changed ?? []) zones.set(z.zone_id, z);
-        for (const id of data.zones_removed ?? []) zones.delete(id);
+        for (const id of data.zones_removed ?? []) { zones.delete(id); try { wachtrijen.get(id)?.abo?.unsubscribe(); } catch { } wachtrijen.delete(id); }
         for (const z of data.zones_seek_changed ?? []) { const o = zones.get(z.zone_id); if (o?.now_playing) o.now_playing.seek_position = z.seek_position; }
       }
     });
     laadAlbums();
   },
   core_unpaired(core) {
-    kern = null; browse = null; image = null; transport = null; zones.clear();
+    kern = null; browse = null; image = null; transport = null; zones.clear(); wachtrijen.clear();
     log('ontkoppeld van', core.display_name);
     toonStatus();
   },
@@ -200,16 +215,14 @@ async function speel({ n, image: img, zone, track, action }) {
     const lijst = a.items.filter(i => i.hint === 'action_list' && i.title !== 'Play Album');
     const titel = (/^\d+(?:-\d+)?\.\s+(.*)$/.exec(lijst[track]?.title ?? '') ?? [])[1];
     log('play from here:', JSON.stringify(titel), 'track', track + 1, 'van', lijst.length);
+    const oud = new Set((wachtrijen.get(zone)?.items ?? []).map(i => i.queue_item_id));
     await speel({ n, image: img, zone, action: 'Play Now' });
     log('play from here: album speelt');
     if (track === 0) return { ok: true };
-    const item = await wachtOpWachtrij(zone, titel, lijst.length);
+    const item = await zoekInWachtrij(zone, titel, lijst.length, oud);
     log('play from here: in de wachtrij', item ? `gevonden (${item.queue_item_id})` : 'NIET gevonden');
     if (!item) throw new Error('Playing from the start: the queue did not show the track');
-    await metLimiet('play_from_here', (ok, mis) => transport.play_from_here(zone, item.queue_item_id, (m, b) => {
-      log('play from here: antwoord', m, b ? JSON.stringify(b).slice(0, 120) : '');
-      m === 'Success' ? ok() : mis(new Error(String(m)));
-    }));
+    await springNaar(zone, item.queue_item_id);
     return { ok: true };
   }
   const schud = action === 'Shuffle';
@@ -228,26 +241,19 @@ async function speel({ n, image: img, zone, track, action }) {
   return { ok: true, message: r.message ?? null };
 }
 
-// De wachtrij van een zone tot het album erin staat (hooguit 4 s): het item met deze titel.
-function wachtOpWachtrij(zone, titel, aantal) {
-  return new Promise(ok => {
-    let klaar = false, abo = null;
-    const stop = r => { if (klaar) return; klaar = true; clearTimeout(t); try { abo?.unsubscribe(); } catch { } ok(r); };
-    const t = setTimeout(() => stop(null), 4000);
-    let items = [];
-    abo = transport.subscribe_queue(zone, Math.max(aantal + 5, 50), (cmd, d) => {
-      log('wachtrij:', cmd, cmd === 'Subscribed' ? `${d?.items?.length ?? 0} items` : `${d?.changes?.length ?? 0} wijzigingen`);
-      if (cmd === 'Subscribed') items = d.items ?? [];
-      else if (cmd === 'Changed') {
-        for (const c of d.changes ?? []) {
-          if (c.operation === 'remove') items.splice(c.index, c.count);
-          else if (c.operation === 'insert') items.splice(c.index, 0, ...(c.items ?? []));
-        }
-      } else return;
-      const vind = items.find(i => (i.three_line?.line1 ?? i.one_line?.line1) === titel);
-      if (vind && items.length >= aantal) stop(vind);
-    });
-  });
+// Wachten tot het album in de wachtrij van de zone staat (hooguit 4 s): het item met deze titel.
+// Alleen nieuwe items: speelt hetzelfde album al, dan staat de track ook nog in de oude wachtrij.
+async function zoekInWachtrij(zone, titel, aantal, oud = new Set()) {
+  for (let i = 0; i < 40; i++) {
+    const items = wachtrijen.get(zone)?.items ?? [];
+    const vind = items.find(x => !oud.has(x.queue_item_id) && (x.three_line?.line1 ?? x.one_line?.line1) === titel);
+    if (vind && items.length >= aantal) return vind;
+    await new Promise(ok => setTimeout(ok, 100));
+  }
+  return null;
+}
+function springNaar(zone, item) {
+  return metLimiet('play_from_here', (ok, mis) => transport.play_from_here(zone, item, m => m === 'Success' ? ok() : mis(new Error(String(m)))));
 }
 
 // De zones voor de kiezer en de knoppen: naam, stand en wat er speelt (om Play in Pause te veranderen bij dit album).
@@ -255,7 +261,12 @@ function zoneLijst() {
   return [...zones.values()].map(z => ({
     id: z.zone_id, name: z.display_name, state: z.state,
     now: z.now_playing ? { title: z.now_playing.three_line?.line1 ?? '', artist: z.now_playing.three_line?.line2 ?? '',
-                           album: z.now_playing.three_line?.line3 ?? '', image: z.now_playing.image_key ?? null } : null,
+                           album: z.now_playing.three_line?.line3 ?? '', image: z.now_playing.image_key ?? null,
+                           len: z.now_playing.length ?? null, seek: z.now_playing.seek_position ?? null } : null,
+    // Voor de lessenaar: shuffle en herhalen, wat mag, en het volume van de eerste uitgang (als Roon het kan zetten).
+    shuffle: !!z.settings?.shuffle, loop: z.settings?.loop ?? 'disabled',
+    kan: { prev: !!z.is_previous_allowed, next: !!z.is_next_allowed, seek: !!z.is_seek_allowed },
+    volume: (() => { const v = z.outputs?.[0]?.volume; return v && v.type !== 'incremental' ? { value: v.value, min: v.min, max: v.max, step: v.step, muted: !!v.is_muted } : null; })(),
   })).sort((a, b) => a.name.localeCompare(b.name));
 }
 
@@ -348,6 +359,34 @@ http.createServer(async (req, res) => {
     if (!browse) return stuur(res, 503, { error: 'Not connected to Roon' });
     try { const v = await lees(req); return stuur(res, 200, await opRij(() => speel(v))); }
     catch (e) { return stuur(res, 409, { error: e.message }); }
+  }
+  if (url.pathname === '/api/queue') {
+    const items = wachtrijen.get(url.searchParams.get('zone'))?.items ?? [];
+    return stuur(res, 200, { items: items.map(i => ({ id: i.queue_item_id, title: i.three_line?.line1 ?? i.one_line?.line1 ?? '',
+      artist: i.three_line?.line2 ?? '', album: i.three_line?.line3 ?? '', image: i.image_key ?? null, len: i.length ?? null })) });
+  }
+  // De lessenaar: zoeken in de track, volume, shuffle/herhalen, een item uit de wachtrij spelen.
+  if (req.method === 'POST' && ['/api/seek', '/api/volume', '/api/settings', '/api/jump'].includes(url.pathname)) {
+    if (!transport) return stuur(res, 503, { error: 'Not connected to Roon' });
+    const v = await lees(req), z = zones.get(v.zone);
+    if (!z) return stuur(res, 400, { error: 'Choose a zone' });
+    const klaar = err => stuur(res, err && err !== 'Success' ? 409 : 200, err && err !== 'Success' ? { error: String(err) } : { ok: true });
+    try {
+      if (url.pathname === '/api/seek') return transport.seek(z.zone_id, 'absolute', Math.max(0, Math.round(Number(v.seconds) || 0)), klaar);
+      if (url.pathname === '/api/volume') {
+        const o = z.outputs?.[0];
+        if (!o?.volume || o.volume.type === 'incremental') return stuur(res, 409, { error: 'Roon cannot set this volume' });
+        const w = Math.min(o.volume.max, Math.max(o.volume.min, Number(v.value)));
+        return transport.change_volume(o.output_id, 'absolute', w, klaar);
+      }
+      if (url.pathname === '/api/settings') {
+        const zet = {};
+        if (typeof v.shuffle === 'boolean') zet.shuffle = v.shuffle;
+        if (['disabled', 'loop', 'loop_one'].includes(v.loop)) zet.loop = v.loop;
+        return transport.change_settings(z.zone_id, zet, klaar);
+      }
+      await springNaar(z.zone_id, v.item); return stuur(res, 200, { ok: true });
+    } catch (e) { return stuur(res, 409, { error: e.message }); }
   }
   if (url.pathname === '/api/control' && req.method === 'POST') {
     if (!transport) return stuur(res, 503, { error: 'Not connected to Roon' });

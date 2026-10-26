@@ -27,17 +27,7 @@
   #tel { color: var(--zacht); font-size: 13px; font-variant-numeric: tabular-nums; }
   /* Naam en aantal op één basislijn (René: "lijnt niet lekker"). */
   .naam { display: flex; align-items: baseline; gap: 12px; }
-  /* De bediening van de gekozen zone, bovenin (René, 26 okt): wat er speelt, vorige, play/pause, volgende. */
-  .speler { margin-left: auto; display: flex; align-items: center; gap: 8px; min-width: 0; }
-  .speler[hidden] { display: none; }
-  .speler .nu { font-size: 13px; color: var(--zacht); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 280px; margin-right: 6px; }
-  .speler .nu b { color: var(--tekst); font-weight: 600; }
-  .speler .knop.rond.klein { width: 30px; height: 30px; background: none; box-shadow: none; }
-  .speler .knop.rond.klein:hover { background: rgba(255,255,255,.12); }
-  .speler .knop svg { width: 15px; height: 15px; }
-  .speler .knop.klein svg { width: 13px; height: 13px; }
-  .zone { margin-left: 8px; }
-  .speler[hidden] + .zone { margin-left: auto; }
+  .zone { margin-left: auto; }
   .orde { display: flex; background: rgba(255,255,255,.08); border-radius: 8px; padding: 2px; }
   .orde button { appearance: none; border: 0; background: none; color: var(--tekst); font: inherit; font-size: 13px;
     padding: 5px 12px; border-radius: 6px; cursor: pointer; }
@@ -124,24 +114,120 @@
     .tracks { grid-auto-flow: row; }
     .info { padding-bottom: 14px; }
   }
+  /* ---- De lessenaar (Basso, Lessenaar.swift): Now Playing rechts, 320 breed, als in/uitklapper (René, 26 okt) ----
+     Het paneel schuift over de stapel; de stapel wordt pas smaller als het paneel er staat (bij dichtklappen meteen breed,
+     onder het paneel dat wegschuift) — Basso: "het grid resizet met een flits". Ingeklapt: de speelcapsule onderin. */
+  :root { --paneel: 320px; }
+  body { transition: none; }
+  body.met-paneel { padding-right: calc(var(--paneel) + 1px); }
+  .lessenaar { position: fixed; top: 0; right: 0; bottom: 0; width: var(--paneel); z-index: 4; display: flex; flex-direction: column;
+    background: #141416; border-left: 1px solid rgba(255,255,255,.08); overflow: hidden; color: #fff;
+    transform: translateX(100%); transition: transform .38s cubic-bezier(.2,.9,.25,1); }
+  .lessenaar.open { transform: none; }
+  .doek { position: absolute; inset: 0; z-index: -1; overflow: hidden; }
+  .doek img { position: absolute; inset: -25%; width: 150%; height: 150%; object-fit: cover; filter: blur(48px) saturate(1.85) brightness(.62);
+    opacity: 0; transition: opacity 1.5s; }
+  .doek img.aan { opacity: 1; }
+  .doek::after { content: ''; position: absolute; inset: 0; background: rgba(0,0,0,.5); }
+  .gezicht { position: absolute; inset: 0 0 48px 0; display: flex; flex-direction: column; transition: opacity .25s ease-out; }
+  .gezicht.weg { opacity: 0; pointer-events: none; }
+  .np { display: flex; flex-direction: column; align-items: center; padding-top: max(32px, env(safe-area-inset-top)); }
+  .np-hoes { width: 256px; height: 256px; border-radius: 10px; object-fit: cover; box-shadow: 0 9px 36px rgba(0,0,0,.5);
+    background: rgba(255,255,255,.06); }
+  .klok { width: 256px; }
+  .lijn { position: relative; height: 14px; margin: 4px 4px 0; cursor: pointer; touch-action: none; }
+  .lijn::before, .lijn i { content: ''; position: absolute; left: 0; bottom: 3px; height: 1px; border-radius: 1px; }
+  .lijn::before { right: 0; background: rgba(255,255,255,.18); box-shadow: 0 1px 3px rgba(0,0,0,.5); }
+  .lijn i { background: #fff; width: 0; }
+  .tijden { display: flex; align-items: baseline; gap: 8px; font-size: 10px; color: rgba(255,255,255,.5); font-variant-numeric: tabular-nums;
+    text-shadow: 0 1px 3px rgba(0,0,0,.5); }
+  .tijden .mid { flex: 1; min-width: 0; display: flex; justify-content: center; align-items: baseline; gap: 9px; white-space: nowrap; overflow: hidden; }
+  .tijden .zn { font-size: 10px; font-weight: 600; color: rgba(255,255,255,.6); overflow: hidden; text-overflow: ellipsis; }
+  .tijden em { font-style: normal; font-size: 8.5px; font-weight: 600; letter-spacing: .6px; color: rgba(255,255,255,.6);
+    padding: 0 3px; border: .75px solid rgba(255,255,255,.4); border-radius: 3px; }
+  .meta { width: 256px; margin-top: 34px; display: flex; flex-direction: column; gap: 4px; }
+  .meta .t { font-size: 15px; font-weight: 600; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .meta .a, .meta .b { font-size: 13px; color: rgba(255,255,255,.7); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .meta .b { color: rgba(255,255,255,.5); cursor: pointer; }
+  .meta .b:hover { color: rgba(255,255,255,.8); }
+  .transport { width: 256px; margin-top: 30px; display: flex; align-items: center; justify-content: space-between; }
+  .transport button { appearance: none; border: 0; background: none; color: #fff; cursor: pointer; padding: 0; display: flex;
+    align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; }
+  .transport button:active { transform: scale(.9); }
+  .transport button:disabled { opacity: .3; cursor: default; }
+  .transport svg { width: 20px; height: 20px; }
+  .transport .modus { color: rgba(255,255,255,.45); }
+  .transport .modus svg { width: 16px; height: 16px; }
+  .transport .modus.aan { color: #fff; }
+  .transport .speel { width: 46px; height: 46px; background: #fff; color: #1a1a1a; transition: transform .16s cubic-bezier(.3,1.6,.5,1); }
+  .transport .speel svg { width: 17px; height: 17px; }
+  .volume { width: 256px; margin-top: 22px; display: flex; align-items: center; gap: 10px; color: rgba(255,255,255,.55); }
+  .volume[hidden] { display: none; }
+  .volume svg { width: 14px; height: 14px; flex: 0 0 auto; }
+  .volume input { flex: 1; appearance: none; -webkit-appearance: none; height: 14px; background: none; cursor: pointer; margin: 0; }
+  .volume input::-webkit-slider-runnable-track { height: 3px; border-radius: 2px; background: linear-gradient(to right, rgba(255,255,255,.85) var(--v, 0%), rgba(255,255,255,.18) var(--v, 0%)); }
+  .volume input::-moz-range-track { height: 3px; border-radius: 2px; background: rgba(255,255,255,.18); }
+  .volume input::-moz-range-progress { height: 3px; border-radius: 2px; background: rgba(255,255,255,.85); }
+  .volume input::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; margin-top: -4.5px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+  .volume input::-moz-range-thumb { width: 12px; height: 12px; border: 0; border-radius: 50%; background: #fff; }
+  .volume span { width: 24px; text-align: right; font-size: 11px; font-variant-numeric: tabular-nums; }
+  /* What's Next: onderin verankerd, precies zoveel rijen als er passen (thumbs 36, 14/12, tijden, haarlijntjes). */
+  .volgende { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: flex-end; padding: 16px 12px 6px; overflow: hidden; }
+  .volgende[hidden] { display: none; }
+  .blok { background: rgba(255,255,255,.07); border-radius: 12px; padding: 10px 10px 4px; cursor: pointer; }
+  .kopje { font-size: 12px; font-weight: 600; color: rgba(255,255,255,.55); padding: 0 2px 6px; }
+  .rij { display: flex; align-items: center; gap: 10px; padding: 5px 2px; border-top: .5px solid rgba(255,255,255,.08); }
+  .kopje + .rij { border-top: 0; }
+  .rij img { width: 36px; height: 36px; border-radius: 5px; object-fit: cover; flex: 0 0 auto; background: rgba(255,255,255,.06); }
+  .rij div { flex: 1; min-width: 0; }
+  .rij b, .rij small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rij b { font-size: 13.5px; font-weight: 500; color: rgba(255,255,255,.92); }
+  .rij small { font-size: 12px; color: rgba(255,255,255,.55); margin-top: 1px; }
+  .rij > span { font-size: 12px; color: rgba(255,255,255,.45); font-variant-numeric: tabular-nums; flex: 0 0 auto; }
+  .wachtrij { overflow-y: auto; padding: max(18px, env(safe-area-inset-top)) 12px 12px; }
+  .wachtrij .rij { cursor: pointer; border-radius: 8px; padding: 5px 6px; }
+  .wachtrij .rij:hover { background: rgba(255,255,255,.06); }
+  .wachtrij .rij.nu { background: rgba(255,255,255,.1); }
+  .wachtrij .rij.nu + .rij { border-top-color: transparent; }
+  .wachtrij h2 { font-size: 12px; font-weight: 600; color: rgba(255,255,255,.55); margin: 0 4px 8px; }
+  .wissel { position: absolute; left: 12px; right: 12px; bottom: 10px; display: flex; gap: 3px; padding: 3px; border-radius: 10px; background: rgba(255,255,255,.08); }
+  .wissel button { appearance: none; border: 0; background: none; flex: 1; height: 28px; border-radius: 8px; font: inherit; font-size: 12px;
+    font-weight: 600; color: rgba(255,255,255,.6); cursor: pointer; }
+  .wissel button[aria-pressed="true"] { background: rgba(255,255,255,.16); color: #fff; }
+  .wissel .dicht { flex: 0 0 36px; color: rgba(255,255,255,.6); display: flex; align-items: center; justify-content: center; }
+  .wissel .dicht svg { width: 15px; height: 15px; }
+  .paneelknop { appearance: none; border: 0; background: rgba(255,255,255,.08); color: var(--tekst); width: 32px; height: 28px; border-radius: 8px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .paneelknop svg { width: 15px; height: 15px; }
+  .paneelknop[aria-pressed="true"] { display: none; }
+  /* De speelcapsule (SpeelCapsule): onderin het midden van de stapel als de lessenaar dicht is; een klik zet hem terug. */
+  .capsule { position: fixed; bottom: calc(env(safe-area-inset-bottom) + 18px); left: 50%; z-index: 3; width: min(390px, calc(100vw - 32px)); height: 56px;
+    transform: translate(-50%, 140%); transition: transform .38s cubic-bezier(.2,.9,.25,1); display: flex; align-items: center; gap: 11px; padding: 0 12px 0 10px;
+    border-radius: 28px; background: rgba(28,28,32,.62); -webkit-backdrop-filter: blur(24px) saturate(1.6); backdrop-filter: blur(24px) saturate(1.6);
+    box-shadow: inset 0 0 0 .75px rgba(255,255,255,.12), 0 5px 24px rgba(0,0,0,.4); cursor: pointer; }
+  .capsule.aan { transform: translate(-50%, 0); }
+  .capsule img { width: 40px; height: 40px; border-radius: 9px; object-fit: cover; background: rgba(255,255,255,.08); }
+  .capsule div { flex: 1; min-width: 0; }
+  .capsule b, .capsule small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .capsule b { font-size: 13.5px; font-weight: 500; }
+  .capsule small { font-size: 12px; color: rgba(255,255,255,.55); }
+  .capsule button { appearance: none; border: 0; background: none; color: #fff; width: 30px; height: 38px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
+  .capsule button svg { width: 17px; height: 17px; }
+  .capsule button + button svg { width: 15px; height: 15px; opacity: .85; }
+  /* Smal (iPad staand, telefoon): het paneel zweeft over de stapel, zoals op Harry. */
+  @media (max-width: 900px) { body.met-paneel { padding-right: 0; } .lessenaar { box-shadow: -10px 0 40px rgba(0,0,0,.5); } }
+  @media (max-width: 600px) { :root { --paneel: 100vw; } }
   #melding { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 20px); transform: translateX(-50%);
     background: rgba(40,40,46,.92); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); color: var(--tekst);
     font-size: 13px; padding: 9px 16px; border-radius: 18px; opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 5; }
   #melding.aan { opacity: 1; }
   #leeg { padding: 40px var(--rand); color: var(--zacht); font-size: 14px; }
-  @media (max-width: 1100px) { .speler .nu { display: none; } }
-  @media (max-width: 600px) { :root { --letter: 11px; } h1 { font-size: 20px; } .zone, .speler { margin-left: 0; } }
+  @media (max-width: 600px) { :root { --letter: 11px; } h1 { font-size: 20px; } .zone { margin-left: 0; } }
 </style>
 </head>
 <body>
 <header>
   <div class="naam"><h1>Stacks</h1><span id="tel"></span></div>
-  <div class="speler" hidden>
-    <span class="nu"></span>
-    <button class="knop rond klein" data-ctl="previous" title="Previous" aria-label="Previous"></button>
-    <button class="knop rond" data-ctl="playpause" title="Play" aria-label="Play"></button>
-    <button class="knop rond klein" data-ctl="next" title="Next" aria-label="Next"></button>
-  </div>
   <label class="zone">Play on <select id="zone" aria-label="Zone"></select></label>
   <div class="orde" role="group" aria-label="Order">
     <button data-orde="released" data-deep hidden>Release Date</button>
@@ -151,10 +237,43 @@
     <button data-orde="shuffled">Shuffled</button>
     <button data-orde="catno" data-deep hidden>Catalogue Number</button>
   </div>
+  <button id="paneelKnop" class="paneelknop" title="Now Playing" aria-label="Now Playing" aria-pressed="false"></button>
 </header>
 <main id="stapel"></main>
 <div id="leeg" hidden></div>
 <div id="melding" role="status"></div>
+<aside id="lessenaar" class="lessenaar" aria-label="Now Playing">
+  <div class="doek"><img alt=""></div>
+  <div class="gezicht np-gezicht">
+    <div class="np">
+      <img class="np-hoes" alt="">
+      <div class="klok">
+        <div class="lijn" title="Seek"><i></i></div>
+        <div class="tijden"><span class="pos">0:00</span><span class="mid"><em hidden></em><span class="zn"></span></span><span class="duur"></span></div>
+      </div>
+      <div class="meta"><div class="t"></div><div class="a"></div><div class="b" title="Show in the stack"></div></div>
+      <div class="transport">
+        <button class="modus" data-doe="shuffle" title="Shuffle" aria-label="Shuffle"></button>
+        <button data-doe="previous" title="Previous" aria-label="Previous"></button>
+        <button class="speel" data-doe="playpause" title="Play" aria-label="Play"></button>
+        <button data-doe="next" title="Next" aria-label="Next"></button>
+        <button class="modus" data-doe="repeat" title="Repeat" aria-label="Repeat"></button>
+      </div>
+      <label class="volume" hidden><span class="luid"></span><input type="range" min="0" max="100" step="1" aria-label="Volume"><span class="vw"></span></label>
+    </div>
+    <div class="volgende"><div class="blok" title="Show the queue"></div></div>
+  </div>
+  <div class="gezicht wachtrij weg"></div>
+  <div class="wissel">
+    <button data-gezicht="np" aria-pressed="true">Now Playing</button>
+    <button data-gezicht="queue" aria-pressed="false">Queue</button>
+    <button class="dicht" title="Hide" aria-label="Hide Now Playing"></button>
+  </div>
+</aside>
+<div id="capsule" class="capsule" role="button" aria-label="Show Now Playing">
+  <img alt=""><div><b></b><small></small></div>
+  <button data-doe="playpause" aria-label="Play"></button><button data-doe="next" aria-label="Next"></button>
+</div>
 <script>
 // De volgordes van Basso's Stacks voor zover de officiële API ze toelaat (By Artist, A-Z, Shuffled); Release Date,
 // Date Added en Catalogue Number komen met Deep Roon. Lidwoorden tellen niet mee, zoals in Basso (zonderLidwoord).
@@ -285,6 +404,12 @@ const ICOON = {
   volgende: '<rect fill="currentColor" x="14.8" y="4" width="2.2" height="12" rx="1.1"/><path fill="currentColor" d="M3 5.1v9.8c0 .8.9 1.3 1.6.8l7.8-4.7c.6-.4.6-1.4 0-1.8L4.6 4.3C3.9 3.8 3 4.3 3 5.1z"/>',
   shuffle: LIJN + '<path d="M2.5 6h2.6c1.8 0 2.9.9 4 2.6l1.8 2.8c1.1 1.7 2.2 2.6 4 2.6h2.6"/><path d="M2.5 14h2.6c1.2 0 2.1-.4 2.9-1.2"/><path d="M12.1 7.2c.8-.8 1.7-1.2 2.9-1.2h2.5"/><path d="M15.6 3.9 17.7 6l-2.1 2.1"/><path d="M15.6 11.9l2.1 2.1-2.1 2.1"/></g>',
   next: LIJN + '<path d="M9 5h8.5"/><path d="M2.5 10h15"/><path d="M2.5 15h15"/></g><path fill="currentColor" d="M2.5 2.6v4.8c0 .5.5.8.9.5l3.4-2.4c.3-.2.3-.8 0-1L3.4 2.1c-.4-.3-.9 0-.9.5z"/>',
+  terug: '<path fill="currentColor" d="M9.6 5.2v9.6c0 .7-.8 1.1-1.4.7L2.2 10.7c-.5-.4-.5-1.1 0-1.4l6-4.8c.6-.4 1.4 0 1.4.7zm8.4 0v9.6c0 .7-.8 1.1-1.4.7l-6-4.8c-.5-.4-.5-1.1 0-1.4l6-4.8c.6-.4 1.4 0 1.4.7z"/>',
+  vooruit: '<path fill="currentColor" d="M10.4 5.2v9.6c0 .7.8 1.1 1.4.7l6-4.8c.5-.4.5-1.1 0-1.4l-6-4.8c-.6-.4-1.4 0-1.4.7zM2 5.2v9.6c0 .7.8 1.1 1.4.7l6-4.8c.5-.4.5-1.1 0-1.4l-6-4.8C2.8 4.1 2 4.5 2 5.2z"/>',
+  herhaal: LIJN + '<path d="M3.5 9.5V8.2c0-1.8 1.4-3.2 3.2-3.2h10"/><path d="M14.6 2.4 17.2 5l-2.6 2.6"/><path d="M16.5 10.5v1.3c0 1.8-1.4 3.2-3.2 3.2h-10"/><path d="M5.4 17.6 2.8 15l2.6-2.6"/></g>',
+  herhaal1: LIJN + '<path d="M3.5 9.5V8.2c0-1.8 1.4-3.2 3.2-3.2h10"/><path d="M14.6 2.4 17.2 5l-2.6 2.6"/><path d="M16.5 10.5v1.3c0 1.8-1.4 3.2-3.2 3.2h-10"/><path d="M5.4 17.6 2.8 15l2.6-2.6"/></g><path fill="currentColor" d="M9.3 8.6h1.6v4.2h-1.1V9.9l-.7.3-.3-.9z"/>',
+  luid: '<path fill="currentColor" d="M2.5 7.4v5.2c0 .4.3.7.7.7h2.6l3.6 3c.5.4 1.2 0 1.2-.6V4.3c0-.6-.7-1-1.2-.6l-3.6 3H3.2c-.4 0-.7.3-.7.7z"/>' + LIJN.replace('1.7', '1.5') + '<path d="M13.3 7.2c.8.7 1.2 1.7 1.2 2.8s-.4 2.1-1.2 2.8"/><path d="M15.6 4.9c1.4 1.3 2.2 3.1 2.2 5.1s-.8 3.8-2.2 5.1"/></g>',
+  paneel: LIJN.replace('1.7', '1.5') + '<rect x="2.5" y="3.5" width="15" height="13" rx="2.5"/><path d="M12.5 3.8v12.4"/></g>',
   later: LIJN + '<path d="M2.5 5h15"/><path d="M2.5 10h15"/><path d="M2.5 15h7.5"/><path d="M14.5 12.2v5.6"/><path d="M11.7 15h5.6"/></g>',
 };
 const svg = n => `<svg viewBox="0 0 20 20" aria-hidden="true">${ICOON[n]}</svg>`;
@@ -505,35 +630,200 @@ async function haalZones() {
   try { zonesNu = (await (await fetch('/api/zones', { cache: 'no-store' })).json()).zones; } catch { return; }
   if (!zoneNu() && zonesNu.length) zoneId = (zonesNu.find(z => z.state === 'playing') ?? zonesNu[0]).id;
   kiezer.replaceChildren(...zonesNu.map(z => new Option(z.name, z.id, false, z.id === zoneId)));
-  toonSpeler();
+  toonLessenaar();
   // Play wordt Pause als dit album op de gekozen zone speelt.
   if (open) { const oud = open.links.querySelector('.knoppen'); oud.replaceWith(knoppenRij(open.album)); }
 }
-// De bediening bovenin: wat er speelt op de gekozen zone, en de knoppen ernaast.
-const speler = document.querySelector('.speler');
-for (const b of speler.querySelectorAll('button')) b.innerHTML = svg(b.dataset.ctl === 'previous' ? 'vorige' : b.dataset.ctl === 'next' ? 'volgende' : 'play');
-function toonSpeler() {
-  const z = zoneNu();
-  speler.hidden = !z;
-  if (!z) return;
-  const nu = speler.querySelector('.nu');
-  nu.replaceChildren();
-  if (z.now) {
-    const t = document.createElement('b'); t.textContent = z.now.title;
-    nu.append(t, document.createTextNode(z.now.artist ? `  ${z.now.artist}` : ''));
-    nu.title = [z.now.title, z.now.artist, z.now.album].filter(Boolean).join(' — ');
-  }
-  const speelt = z.state === 'playing', pp = speler.querySelector('[data-ctl="playpause"]');
-  pp.innerHTML = svg(speelt ? 'pause' : 'play'); pp.title = pp.ariaLabel = speelt ? 'Pause' : 'Play';
-  for (const b of speler.querySelectorAll('button')) b.disabled = !z.now;
+kiezer.addEventListener('change', () => { zoneId = kiezer.value; try { localStorage.setItem('stacks.zone', zoneId); } catch {} haalZones(); haalWachtrij(); });
+
+// ---- de lessenaar: Now Playing rechts (Basso, Lessenaar.swift) ----
+const les = document.getElementById('lessenaar'), cap = document.getElementById('capsule'), paneelKnop = document.getElementById('paneelKnop');
+paneelKnop.innerHTML = svg('paneel'); les.querySelector('.wissel .dicht').innerHTML = svg('paneel');
+les.querySelector('.volume .luid').innerHTML = svg('luid');
+let lesOpen = window.innerWidth > 900, lesWacht = null, lesGezicht = 'np', wachtrijNu = [], seekBasis = null;
+try { const v = localStorage.getItem('stacks.lessenaar'); if (v) lesOpen = v === 'open'; } catch {}
+
+// Openen: het paneel schuift over de stapel, en pas als het er (bijna) staat wordt de stapel smaller — één wissel.
+// Dichtklappen: de stapel meteen breed, onder het paneel dat wegschuift.
+function zetLessenaar(open, bewaar = true) {
+  lesOpen = open;
+  clearTimeout(lesWacht);
+  les.classList.toggle('open', open);
+  paneelKnop.setAttribute('aria-pressed', open);
+  if (open) lesWacht = setTimeout(() => document.body.classList.add('met-paneel'), 240);
+  else document.body.classList.remove('met-paneel');
+  if (bewaar) try { localStorage.setItem('stacks.lessenaar', open ? 'open' : 'dicht'); } catch {}
+  toonLessenaar();
+  if (open) haalWachtrij();
 }
-speler.addEventListener('click', e => {
-  const b = e.target.closest('button'); if (!b || !zoneNu()) return;
-  post('/api/control', { zone: zoneId, control: b.dataset.ctl }).then(() => setTimeout(haalZones, 400)).catch(e => meld(e.message));
+paneelKnop.addEventListener('click', () => zetLessenaar(true));
+les.querySelector('.wissel .dicht').addEventListener('click', () => zetLessenaar(false));
+cap.addEventListener('click', e => { if (!e.target.closest('button')) zetLessenaar(true); });
+
+// Twee gezichten, een stille crossfade: Now Playing en Queue.
+function zetGezicht(g) {
+  lesGezicht = g;
+  les.querySelector('.np-gezicht').classList.toggle('weg', g !== 'np');
+  les.querySelector('.wachtrij').classList.toggle('weg', g !== 'queue');
+  for (const b of les.querySelectorAll('.wissel [data-gezicht]')) b.setAttribute('aria-pressed', b.dataset.gezicht === g);
+  toonWachtrij();
+}
+les.querySelector('.wissel').addEventListener('click', e => { const b = e.target.closest('[data-gezicht]'); if (b) zetGezicht(b.dataset.gezicht); });
+les.querySelector('.blok').addEventListener('click', () => zetGezicht('queue'));
+
+const tijd = s => s == null ? '' : `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+const hoesUrl = (k, m) => k ? `/cover/${encodeURIComponent(k)}?size=${m}` : '';
+function zetBeeld(img, url) { if (img.dataset.src !== url) { img.dataset.src = url; if (url) img.src = url; else img.removeAttribute('src'); } }
+
+// Waar de klok staat: de laatste seek van Roon plus de tijd sindsdien, als hij speelt.
+function positie() {
+  if (!seekBasis) return null;
+  return seekBasis.speelt ? seekBasis.seek + (performance.now() - seekBasis.op) / 1000 : seekBasis.seek;
+}
+function toonKlok() {
+  const z = zoneNu(), len = z?.now?.len, p = positie();
+  les.querySelector('.pos').textContent = p != null && len ? tijd(Math.min(p, len)) : '';
+  les.querySelector('.duur').textContent = len ? tijd(len) : '';
+  les.querySelector('.lijn i').style.width = p != null && len ? `${Math.min(100, p / len * 100)}%` : '0';
+}
+setInterval(() => { if (lesOpen && seekBasis?.speelt) toonKlok(); }, 500);
+
+function toonLessenaar() {
+  const z = zoneNu(), nu = z?.now;
+  if (z) seekBasis = nu?.seek != null ? { seek: nu.seek, op: performance.now(), speelt: z.state === 'playing' } : null;
+  const speelt = z?.state === 'playing';
+  // Het doek en de hoes
+  const doek = les.querySelector('.doek img');
+  zetBeeld(doek, hoesUrl(nu?.image, 300)); doek.classList.toggle('aan', !!nu?.image);
+  zetBeeld(les.querySelector('.np-hoes'), hoesUrl(nu?.image, 600));
+  les.querySelector('.meta .t').textContent = nu?.title || 'Nothing playing';
+  les.querySelector('.meta .t').style.opacity = nu ? 1 : .55;
+  les.querySelector('.meta .a').textContent = nu?.artist ?? '';
+  les.querySelector('.meta .b').textContent = nu?.album ?? '';
+  // De feitenregel: het formaat van het album uit de stapel (niet bij cd-kwaliteit), en de zone.
+  const al = nu && albums.find(a => a.title === nu.album), fmt = al?.fmt && !['16/44.1', 'Mixed'].includes(al.fmt) ? al.fmt : null;
+  const em = les.querySelector('.tijden em'); em.textContent = fmt ?? ''; em.hidden = !fmt;
+  les.querySelector('.tijden .zn').textContent = z?.name ?? '';
+  toonKlok();
+  // Knoppen
+  const t = les.querySelector('.transport');
+  t.querySelector('[data-doe="shuffle"]').innerHTML = svg('shuffle');
+  t.querySelector('[data-doe="shuffle"]').classList.toggle('aan', !!z?.shuffle);
+  t.querySelector('[data-doe="previous"]').innerHTML = svg('terug');
+  t.querySelector('[data-doe="next"]').innerHTML = svg('vooruit');
+  const pp = t.querySelector('[data-doe="playpause"]'); pp.innerHTML = svg(speelt ? 'pause' : 'play'); pp.title = speelt ? 'Pause' : 'Play';
+  const rep = t.querySelector('[data-doe="repeat"]'); rep.innerHTML = svg(z?.loop === 'loop_one' ? 'herhaal1' : 'herhaal');
+  rep.classList.toggle('aan', !!z && z.loop !== 'disabled');
+  for (const b of t.querySelectorAll('button')) b.disabled = !z || (!nu && b.dataset.doe !== 'shuffle' && b.dataset.doe !== 'repeat');
+  if (z && nu) { t.querySelector('[data-doe="previous"]').disabled = !z.kan.prev; t.querySelector('[data-doe="next"]').disabled = !z.kan.next; }
+  // Volume (als Roon het kan zetten)
+  const vol = les.querySelector('.volume'), inp = vol.querySelector('input');
+  vol.hidden = !z?.volume;
+  if (z?.volume && !inp.matches(':active')) {
+    inp.min = z.volume.min; inp.max = z.volume.max; inp.step = z.volume.step || 1; inp.value = z.volume.value;
+    toonVolume();
+  }
+  // De capsule
+  cap.classList.toggle('aan', !lesOpen && !!nu);
+  zetBeeld(cap.querySelector('img'), hoesUrl(nu?.image, 120));
+  cap.querySelector('b').textContent = nu?.title ?? ''; cap.querySelector('small').textContent = nu?.artist ?? '';
+  cap.querySelector('[data-doe="playpause"]').innerHTML = svg(speelt ? 'pause' : 'play');
+  cap.querySelector('[data-doe="next"]').innerHTML = svg('vooruit');
+}
+function toonVolume() {
+  const inp = les.querySelector('.volume input'), min = Number(inp.min), max = Number(inp.max), v = Number(inp.value);
+  inp.style.setProperty('--v', `${(v - min) / (max - min || 1) * 100}%`);
+  les.querySelector('.volume .vw').textContent = Math.round(v);
+}
+
+async function doe(wat) {
+  const z = zoneNu(); if (!z) return;
+  try {
+    if (wat === 'shuffle') await post('/api/settings', { zone: z.id, shuffle: !z.shuffle });
+    else if (wat === 'repeat') await post('/api/settings', { zone: z.id, loop: { disabled: 'loop', loop: 'loop_one', loop_one: 'disabled' }[z.loop] ?? 'loop' });
+    else await post('/api/control', { zone: z.id, control: wat });
+  } catch (e) { meld(e.message); }
+  setTimeout(() => { haalZones(); haalWachtrij(); }, 350);
+}
+les.querySelector('.transport').addEventListener('click', e => { const b = e.target.closest('button'); if (b) doe(b.dataset.doe); });
+cap.addEventListener('click', e => { const b = e.target.closest('button'); if (b) { e.stopPropagation(); doe(b.dataset.doe); } });
+
+// Zoeken in de track: klikken of slepen op de lijn; losgelaten = seek.
+const lijn = les.querySelector('.lijn');
+function lijnFractie(e) { const r = lijn.getBoundingClientRect(); return Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); }
+lijn.addEventListener('pointerdown', e => {
+  const z = zoneNu(); if (!z?.now?.len || !z.kan.seek) return;
+  lijn.setPointerCapture(e.pointerId);
+  const zet = ev => { les.querySelector('.lijn i').style.width = `${lijnFractie(ev) * 100}%`; les.querySelector('.pos').textContent = tijd(lijnFractie(ev) * z.now.len); };
+  zet(e);
+  lijn.onpointermove = zet;
+  lijn.onpointerup = ev => {
+    lijn.onpointermove = lijn.onpointerup = null;
+    const s = lijnFractie(ev) * z.now.len;
+    seekBasis = { seek: s, op: performance.now(), speelt: z.state === 'playing' };
+    post('/api/seek', { zone: z.id, seconds: s }).catch(er => meld(er.message));
+  };
 });
 
-kiezer.addEventListener('change', () => { zoneId = kiezer.value; try { localStorage.setItem('stacks.zone', zoneId); } catch {} haalZones(); });
-haalZones(); setInterval(haalZones, 4000);
+// Het volume: meteen tonen, rustig doorgeven.
+let volTimer;
+les.querySelector('.volume input').addEventListener('input', e => {
+  toonVolume(); clearTimeout(volTimer);
+  volTimer = setTimeout(() => post('/api/volume', { zone: zoneId, value: Number(e.target.value) }).catch(er => meld(er.message)), 120);
+});
+
+// Het album in de stapel: een klik op de albumregel brengt je erheen en klapt het open.
+les.querySelector('.meta .b').addEventListener('click', () => {
+  const nu = zoneNu()?.now; if (!nu) return;
+  const a = albums.find(x => x.title === nu.album && (!nu.artist || namen(x.artist).includes(nu.artist.split(/[,/&]/)[0].trim()))) ?? albums.find(x => x.title === nu.album);
+  const el = a && ruggen.get(sleutel(a));
+  if (!el) return meld('Not in the stack');
+  if (!open || open.sleutel !== sleutel(a)) openAlbum(el); else spring(el);
+});
+
+// De wachtrij: What's Next (zoveel rijen als er passen) en het tweede gezicht.
+async function haalWachtrij() {
+  if (!zoneId || !lesOpen) return;
+  try { wachtrijNu = (await (await fetch(`/api/queue?zone=${encodeURIComponent(zoneId)}`, { cache: 'no-store' })).json()).items ?? []; } catch { return; }
+  toonWachtrij();
+}
+function rijEl(i, nu) {
+  const r = document.createElement('div'); r.className = 'rij' + (nu ? ' nu' : '');
+  const img = new Image(); img.alt = ''; img.loading = 'lazy'; if (i.image) img.src = hoesUrl(i.image, 120);
+  const d = document.createElement('div'), b = document.createElement('b'), sm = document.createElement('small'), t = document.createElement('span');
+  b.textContent = i.title; sm.textContent = i.artist; t.textContent = tijd(i.len);
+  d.append(b, sm); r.append(img, d, t);
+  return r;
+}
+function toonWachtrij() {
+  // What's Next: alles na wat nu speelt (Roon's wachtrij begint bij het huidige nummer).
+  const blok = les.querySelector('.blok'), na = wachtrijNu.slice(1);
+  blok.replaceChildren();
+  blok.parentElement.hidden = !na.length;
+  if (na.length) {
+    const k = document.createElement('div'); k.className = 'kopje'; k.textContent = "What's Next";
+    blok.append(k);
+    const ruimte = blok.parentElement.clientHeight - 16 - 6 - 14 - 26;
+    const passen = Math.max(0, Math.min(7, Math.floor(ruimte / 47)));
+    for (const i of na.slice(0, passen)) blok.append(rijEl(i, false));
+    blok.parentElement.hidden = passen === 0;
+  }
+  if (lesGezicht !== 'queue') return;
+  const w = les.querySelector('.wachtrij');
+  const h = document.createElement('h2'); h.textContent = wachtrijNu.length ? 'Queue' : 'The queue is empty';
+  const rijen = wachtrijNu.map((i, n) => {
+    const r = rijEl(i, n === 0); r.title = n === 0 ? 'Playing now' : 'Play from here';
+    if (n > 0) r.addEventListener('click', () => post('/api/jump', { zone: zoneId, item: i.id }).then(() => setTimeout(() => { haalZones(); haalWachtrij(); }, 400)).catch(e => meld(e.message)));
+    return r;
+  });
+  const y = w.scrollTop;
+  w.replaceChildren(h, ...rijen); w.scrollTop = y;
+}
+window.addEventListener('resize', () => { if (lesOpen) toonWachtrij(); });
+setInterval(() => { if (lesOpen) haalWachtrij(); }, 3000);
+zetLessenaar(lesOpen, false);
+
+haalZones(); setInterval(haalZones, 2000);
 
 document.querySelector('.orde').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
