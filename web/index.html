@@ -52,6 +52,7 @@
   .rug small + small { font-size: 10px; font-weight: 500; letter-spacing: .4px; opacity: .7; width: 110px; text-align: right;
     overflow: hidden; text-overflow: ellipsis; }
   .rug small.stil { opacity: .45; }
+  .rug u.bron { text-decoration: none; font-size: 10px; font-weight: 500; letter-spacing: .3px; color: var(--t2, #fff); opacity: .6; flex: 0 0 auto; }
   @media (max-width: 1000px) { .rug em { display: none; } }
   @media (max-width: 600px) { .rug small + small { width: auto; max-width: 90px; } }
   /* Het jaartal: helemaal rechts, een vaste kolom, stiller dan de speelduur. */
@@ -347,21 +348,31 @@ function vul(el, a) {
   const h = dikte(a); if (h) el.style.setProperty('--h', h + 'px'); else el.style.removeProperty('--h');
   // Het schildje: het echte formaat (24/96, MQA, Mixed …), niet bij cd-kwaliteit.
   const fmt = a.fmt && a.fmt !== '16/44.1' ? a.fmt : null;
-  el.children[3].textContent = fmt ?? ''; el.children[3].hidden = !fmt;
-  el.children[4].textContent = duurTekst(a.len); el.children[4].hidden = !a.len;
+  const em = el.querySelector('em'), duur = el.querySelector('.duur'), nr = el.querySelector('.nr'), jr = el.querySelector('.jaar');
+  em.textContent = fmt ?? ''; em.hidden = !fmt;
+  duur.textContent = duurTekst(a.len); duur.hidden = !a.len;
+  // De bron op de rug alleen als hetzelfde album er vaker staat (René: "twee versies — 1 van de 1, 1 van de ander").
+  const bron = el.querySelector('.bron'), dubbel = a.bron && (dubbelen.get(dubbelSleutel(a)) ?? 0) > 1;
+  bron.textContent = dubbel ? a.bron : ''; bron.hidden = !dubbel;
   // Het nummer rechts in een eigen kolom: bij de volgorde Catalogue Number (zonder nummer de barcode, stiller), of altijd
   // als dat in Roon zo is ingesteld (dan alleen waar het er is).
   const opNummer = orde === 'catno', toon = opNummer || catRug === 'always';
-  el.children[5].textContent = toon ? (catSleutel(a) ?? (opNummer ? a.barcode : null) ?? '') : '';
-  el.children[5].hidden = !toon || !metDeep;
-  el.children[5].classList.toggle('stil', opNummer && !catSleutel(a));
+  nr.textContent = toon ? (catSleutel(a) ?? (opNummer ? a.barcode : null) ?? '') : '';
+  nr.hidden = !toon || !metDeep;
+  nr.classList.toggle('stil', opNummer && !catSleutel(a));
   // Het jaartal helemaal rechts, in een eigen kolom (René: "voor de rust").
   const jaar = a.released?.slice(0, 4) ?? (a.year ? String(a.year) : '');
-  el.children[6].textContent = jaar; el.children[6].hidden = !metDeep;
+  jr.textContent = jaar; jr.hidden = !metDeep;
   kleur(el, a); albumVan.set(el, a);
 }
 
+// Albums die er vaker staan (zelfde titel en artiest, hoofdletters en leestekens tellen niet).
+const dubbelSleutel = a => sorteerSleutel(a.title).replace(/[^\p{L}\p{N}]/gu, '') + '|' + sorteerSleutel(a.artist).replace(/[^\p{L}\p{N}]/gu, '');
+let dubbelen = new Map();
+function telDubbelen() { dubbelen = new Map(); for (const a of albums) dubbelen.set(dubbelSleutel(a), (dubbelen.get(dubbelSleutel(a)) ?? 0) + 1); }
+
 function teken() {
+  telDubbelen();
   const frag = document.createDocumentFragment();
   for (const a of gesorteerd()) {
     let el = ruggen.get(sleutel(a));
@@ -369,7 +380,8 @@ function teken() {
       el = document.createElement('div'); el.className = 'rug'; el.tabIndex = 0; el.setAttribute('role', 'button');
       el.append(document.createElement('b'), document.createElement('span'), document.createElement('i'),
                 document.createElement('em'), document.createElement('small'), document.createElement('small'), document.createElement('small'));
-      el.children[6].className = 'jaar';
+      el.children[4].className = 'duur'; el.children[5].className = 'nr'; el.children[6].className = 'jaar';
+      const bron = document.createElement('u'); bron.className = 'bron'; el.insertBefore(bron, el.querySelector('em'));
       ruggen.set(sleutel(a), el);
     }
     vul(el, a);
@@ -398,7 +410,7 @@ async function haal(eenmaal) {
   // klaar met lezen, een andere catalogussleutel); anders de ruggen ter plekke bijwerken, zodat de stapel niet onder je
   // vingers verschuift terwijl de gegevens binnenkomen.
   if (eerste || albums.length !== wasAantal || metDeep !== wasDeep || (wasBezig && !deepBezig) || catOrde + catRug !== catWas) teken();
-  else for (const a of albums) { const el = ruggen.get(sleutel(a)); if (el) vul(el, a); }
+  else { telDubbelen(); for (const a of albums) { const el = ruggen.get(sleutel(a)); if (el) vul(el, a); } }
   if (!eenmaal && (!d.core || d.loading || d.pending || d.deepBusy)) setTimeout(haal, d.pending || d.deepBusy ? 3000 : 2000);
   else if (!eenmaal) setTimeout(haal, 60000);   // rustig bijhouden: nieuwe albums, Deep Roon die opkomt of wegvalt
 }
@@ -562,7 +574,7 @@ function bouwOpen(a, d) {
   const info = document.createElement('div'); info.className = 'info';
   // De feitenregel: jaar, label, catalogusnummer, tracks, speelduur in onze maat (infoInOnzeMaat: "1 h 18 min").
   const dp = d.deep ?? {};
-  info.textContent = [dp.year ?? a.year, dp.label ?? a.label, dp.catno ?? a.catno,
+  info.textContent = [dp.year ?? a.year, dp.label ?? a.label, dp.catno ?? a.catno, a.bron,
     `${d.tracks.length} ${d.tracks.length === 1 ? 'track' : 'tracks'}`, onzeDuur(dp.len ?? a.len)].filter(Boolean).join(' · ');
   voet.append(info, knoppenRij(a));
   achter.append(k, inleg, vul, voet);
