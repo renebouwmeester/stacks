@@ -28,6 +28,22 @@
   /* Naam en aantal op één basislijn (René: "lijnt niet lekker"). */
   .naam { display: flex; align-items: baseline; gap: 12px; }
   .zone { margin-left: auto; }
+  /* Het filter (Basso's kamerfilter, René 26 okt: "nog 1 killer feature"): ⌘F of de knop opent het veld; elk woord moet
+     voorkomen in titel, artiest, label, catalogusnummer, jaar, formaat of bron — zonder op hoofdletters of accenten te letten. */
+  .filter { display: flex; align-items: center; gap: 7px; height: 30px; padding: 0 10px; border-radius: 15px; width: min(320px, 100%);
+    background: rgba(255,255,255,.08); box-shadow: inset 0 0 0 .75px rgba(255,255,255,.12); }
+  .filter[hidden] { display: none; }
+  .filter .glas { color: #fff; display: flex; } .filter .glas svg { width: 14px; height: 14px; }
+  .filter input { flex: 1; min-width: 0; appearance: none; border: 0; background: none; outline: none; color: var(--tekst); font: inherit; font-size: 14px; }
+  .filter input::-webkit-search-cancel-button { display: none; }
+  .filter .wis { appearance: none; border: 0; background: none; padding: 0; color: rgba(255,255,255,.45); cursor: pointer; display: flex; }
+  .filter .wis svg { width: 15px; height: 15px; }
+  .kopknop { appearance: none; border: 0; background: rgba(255,255,255,.08); color: var(--tekst); width: 32px; height: 28px; border-radius: 8px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: auto; }
+  .kopknop svg { width: 15px; height: 15px; }
+  .filter:not([hidden]) + .kopknop { display: none; }
+  .kopknop + .zone { margin-left: 0; }
+  .filter:not([hidden]) { margin-left: auto; }
   .orde { display: flex; background: rgba(255,255,255,.08); border-radius: 8px; padding: 2px; }
   .orde button { appearance: none; border: 0; background: none; color: var(--tekst); font: inherit; font-size: 13px;
     padding: 5px 12px; border-radius: 6px; cursor: pointer; }
@@ -239,6 +255,12 @@
 <body>
 <header>
   <div class="naam"><h1>Stacks</h1><span id="tel"></span></div>
+  <div class="filter" hidden>
+    <span class="glas"></span>
+    <input id="filterVeld" type="search" placeholder="Filter" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Filter">
+    <button class="wis" aria-label="Clear filter"></button>
+  </div>
+  <button id="filterKnop" class="kopknop" title="Filter (⌘F)" aria-label="Filter" aria-keyshortcuts="Meta+F Control+F"></button>
   <label class="zone">Play on <select id="zone" aria-label="Zone"></select></label>
   <div class="orde" role="group" aria-label="Order">
     <button data-orde="released" data-deep hidden>Release Date</button>
@@ -371,10 +393,22 @@ const dubbelSleutel = a => sorteerSleutel(a.title).replace(/[^\p{L}\p{N}]/gu, ''
 let dubbelen = new Map();
 function telDubbelen() { dubbelen = new Map(); for (const a of albums) dubbelen.set(dubbelSleutel(a), (dubbelen.get(dubbelSleutel(a)) ?? 0) + 1); }
 
+// Het filter: elk woord moet ergens in het album voorkomen (Basso: "elk woord, zonder op hoofdletters of accenten te letten").
+let filterTekst = '';
+const plat = t => (t ?? '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const hooi = a => plat([a.title, namen(a.artist), a.artist, a.label, a.catno, a.barcode, a.released?.slice(0, 4) ?? a.year, a.fmt, a.bron].filter(Boolean).join(' '));
+function gefilterd(lijst) {
+  const woorden = plat(filterTekst).split(/\s+/).filter(Boolean);
+  return woorden.length ? lijst.filter(a => { const h = hooi(a); return woorden.every(w => h.includes(w)); }) : lijst;
+}
+
 function teken() {
   telDubbelen();
   const frag = document.createDocumentFragment();
-  for (const a of gesorteerd()) {
+  const rij = gefilterd(gesorteerd());
+  if (open && !rij.some(a => sleutel(a) === open.sleutel)) sluit();
+  telTekst();
+  for (const a of rij) {
     let el = ruggen.get(sleutel(a));
     if (!el) {
       el = document.createElement('div'); el.className = 'rug'; el.tabIndex = 0; el.setAttribute('role', 'button');
@@ -392,6 +426,14 @@ function teken() {
   for (const b of document.querySelectorAll('.orde button')) b.setAttribute('aria-pressed', b.dataset.orde === orde);
 }
 
+// Het aantal in de kop; met een filter "12 of 1,858 albums".
+let pending = 0;
+function telTekst() {
+  if (!albums.length) { tel.textContent = ''; return; }
+  const n = filterTekst.trim() ? gefilterd(albums).length : null;
+  tel.textContent = `${n != null ? `${n.toLocaleString('en')} of ` : ''}${albums.length.toLocaleString('en')} albums${pending ? ` · colouring ${pending.toLocaleString('en')}` : ''}`;
+}
+
 async function haal(eenmaal) {
   let d;
   try { d = await (await fetch('/api/albums', { cache: 'no-store' })).json(); }
@@ -403,7 +445,7 @@ async function haal(eenmaal) {
   // Valt Deep Roon weg, dan valt een volgorde van Deep Roon terug op By Artist.
   if (!metDeep && ['released', 'added', 'catno'].includes(orde)) orde = 'artist';
   if (metDeep && !wasDeep) { try { orde = localStorage.getItem('stacks.orde') || orde; } catch {} }
-  tel.textContent = albums.length ? `${albums.length.toLocaleString('en')} albums${d.pending ? ` · colouring ${d.pending.toLocaleString('en')}` : ''}` : '';
+  pending = d.pending; telTekst();
   leeg.hidden = albums.length > 0;
   leeg.textContent = !d.core ? 'Waiting for Roon. Enable Stacks in Roon › Settings › Extensions' : d.loading ? 'Reading your library…' : 'No albums';
   // Opnieuw ordenen alleen als de stapel echt anders is (eerste lading, albums erbij of eraf, Deep Roon komt of gaat of is
@@ -441,6 +483,8 @@ const ICOON = {
   luid: '<path fill="currentColor" d="M2.5 7.4v5.2c0 .4.3.7.7.7h2.6l3.6 3c.5.4 1.2 0 1.2-.6V4.3c0-.6-.7-1-1.2-.6l-3.6 3H3.2c-.4 0-.7.3-.7.7z"/>' + LIJN.replace('1.7', '1.5') + '<path d="M13.3 7.2c.8.7 1.2 1.7 1.2 2.8s-.4 2.1-1.2 2.8"/><path d="M15.6 4.9c1.4 1.3 2.2 3.1 2.2 5.1s-.8 3.8-2.2 5.1"/></g>',
   // speaker.slash: de luidspreker zonder golven, met een streep erdoor.
   stil: '<path fill="currentColor" d="M2.5 7.4v5.2c0 .4.3.7.7.7h2.6l3.6 3c.5.4 1.2 0 1.2-.6V4.3c0-.6-.7-1-1.2-.6l-3.6 3H3.2c-.4 0-.7.3-.7.7z"/>' + LIJN.replace('1.7', '1.5') + '<path d="M13.2 7.6l4.6 4.8"/><path d="M17.8 7.6l-4.6 4.8"/></g>',
+  zoek: LIJN.replace('1.7', '1.6') + '<path d="M2.5 4.5h7"/><path d="M2.5 9h4"/><path d="M2.5 13.5h4"/><circle cx="12.5" cy="11" r="3.6"/><path d="M15.2 13.7 17.8 16.3"/></g>',
+  wis: '<circle fill="currentColor" cx="10" cy="10" r="8"/><path d="M7.2 7.2l5.6 5.6M12.8 7.2l-5.6 5.6" stroke="#18181b" stroke-width="1.8" stroke-linecap="round"/>',
   paneel: LIJN.replace('1.7', '1.5') + '<rect x="2.5" y="3.5" width="15" height="13" rx="2.5"/><path d="M12.5 3.8v12.4"/></g>',
   later: LIJN + '<path d="M2.5 5h15"/><path d="M2.5 10h15"/><path d="M2.5 15h7.5"/><path d="M14.5 12.2v5.6"/><path d="M11.7 15h5.6"/></g>',
 };
@@ -639,6 +683,27 @@ function sluit() { if (!open) return; open.el.remove(); open = null; }
 stapel.addEventListener('click', e => { const r = e.target.closest('.rug'); if (r) openAlbum(r); });
 stapel.addEventListener('keydown', e => { const r = e.target.closest('.rug'); if (r && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openAlbum(r); } });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') sluit(); });
+
+// ---- het filter ----
+const filterVak = document.querySelector('.filter'), filterVeld = document.getElementById('filterVeld'), filterKnop = document.getElementById('filterKnop');
+filterKnop.innerHTML = svg('zoek'); filterVak.querySelector('.glas').innerHTML = svg('zoek'); filterVak.querySelector('.wis').innerHTML = svg('wis');
+function openFilter() { filterVak.hidden = false; filterVeld.focus(); filterVeld.select(); }
+function sluitFilter() { filterVeld.value = ''; filterTekst = ''; filterVak.hidden = true; teken(); filterVeld.blur(); }
+filterKnop.addEventListener('click', openFilter);
+filterVak.querySelector('.wis').addEventListener('click', sluitFilter);
+let filterTimer;
+filterVeld.addEventListener('input', () => {
+  clearTimeout(filterTimer);
+  filterTimer = setTimeout(() => { filterTekst = filterVeld.value; teken(); window.scrollTo({ top: 0 }); }, 80);
+});
+filterVeld.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { e.stopPropagation(); if (filterVeld.value) { filterVeld.value = ''; filterTekst = ''; teken(); } else sluitFilter(); }
+  if (e.key === 'Enter') filterVeld.blur();
+});
+// ⌘F (Ctrl+F): het filter, zoals in Basso op de Mac — in plaats van zoeken in de pagina, dat hier weinig zegt.
+document.addEventListener('keydown', e => {
+  if (e.code === 'KeyF' && (e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey) { e.preventDefault(); openFilter(); }
+}, true);
 
 // ---- de lettertoetsen (Basso, DesktopAZ) ----
 // Bij A-Z en By Artist: wat je typt (een seconde lang telt het op) springt naar de eerste rug die zo begint, zonder
