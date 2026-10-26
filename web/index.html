@@ -39,10 +39,10 @@
   .rug b { font-weight: 600; color: var(--t1, #fff); overflow: hidden; text-overflow: ellipsis; flex: 0 1 auto; }
   .rug span { color: var(--t2, rgba(255,255,255,.75)); overflow: hidden; text-overflow: ellipsis; flex: 0 1 auto; min-width: 0; }
   .rug b { min-width: 0; }
-  /* Met Deep Roon (StapelRug): rechts de speelduur, op een breed scherm het HI-RES-schildje, en bij de volgorde op
+  /* Met Deep Roon (StapelRug): rechts de speelduur, op een breed scherm het schildje met bitdiepte/samplerate (24/96), en bij de volgorde op
      catalogusnummer dat nummer in een eigen rechterkolom (variant D uit de tekenbank). */
   .rug i { flex: 1 0 8px; }
-  .rug em { font-style: normal; font-size: 8px; font-weight: 600; letter-spacing: 1.1px; color: var(--t2, #fff); opacity: .85;
+  .rug em { font-style: normal; font-size: 8px; font-weight: 600; letter-spacing: .6px; font-variant-numeric: tabular-nums; color: var(--t2, #fff); opacity: .85;
     padding: 1px 3px; border: .75px solid color-mix(in srgb, var(--t2, #fff) 55%, transparent); border-radius: 3px; }
   .rug small { font-size: 11px; color: var(--t2, #fff); opacity: .8; font-variant-numeric: tabular-nums; flex: 0 0 auto; }
   .rug small + small { font-size: 10px; font-weight: 500; letter-spacing: .4px; opacity: .7; width: 110px; text-align: right;
@@ -189,7 +189,7 @@ function vul(el, a) {
   el.children[0].textContent = eerst; el.children[1].textContent = dan;
   el.title = `${namen(a.artist)} — ${a.title}`;
   const h = dikte(a); if (h) el.style.setProperty('--h', h + 'px'); else el.style.removeProperty('--h');
-  el.children[3].hidden = !a.hr;
+  el.children[3].textContent = a.fmt ?? ''; el.children[3].hidden = !a.fmt;
   el.children[4].textContent = duurTekst(a.len); el.children[4].hidden = !a.len;
   // Op catalogusnummer: het nummer rechts; zonder nummer de barcode, stiller (René, 26 okt).
   el.children[5].textContent = orde === 'catno' ? (catSleutel(a) ?? a.barcode ?? '') : '';
@@ -206,7 +206,6 @@ function teken() {
       el = document.createElement('div'); el.className = 'rug'; el.tabIndex = 0; el.setAttribute('role', 'button');
       el.append(document.createElement('b'), document.createElement('span'), document.createElement('i'),
                 document.createElement('em'), document.createElement('small'), document.createElement('small'));
-      el.children[3].textContent = 'HI-RES';
       ruggen.set(sleutel(a), el);
     }
     vul(el, a);
@@ -437,6 +436,36 @@ function sluit() { if (!open) return; open.el.remove(); open = null; }
 stapel.addEventListener('click', e => { const r = e.target.closest('.rug'); if (r) openAlbum(r); });
 stapel.addEventListener('keydown', e => { const r = e.target.closest('.rug'); if (r && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openAlbum(r); } });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') sluit(); });
+
+// ---- de lettertoetsen (Basso, DesktopAZ) ----
+// Bij A-Z en By Artist: wat je typt (een seconde lang telt het op) springt naar de eerste rug die zo begint, zonder
+// lidwoord; is er geen, dan naar de eerstvolgende (typ Q in een kast zonder Q en je landt bij de R). Bij Catalogue Number
+// op het nummer zelf ("ECM 1", "7K"). Een zachte landing: in één keer naar vijf ruggen ervoor, het laatste stukje glijdt.
+const sorteerSleutel = t => zonderLidwoord(t ?? '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+let getypt = '', getyptOp = 0;
+document.addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey || e.key.length !== 1 || e.target.closest('select, input, textarea')) return;
+  if (!['az', 'artist', 'catno'].includes(orde)) return;
+  if (!/[\p{L}\p{N} \-.]/u.test(e.key)) return;
+  const nu = Date.now();
+  if (nu - getyptOp > 1000) getypt = '';
+  if (e.key === ' ' && !getypt) return;
+  e.preventDefault();
+  getypt += e.key.toLowerCase(); getyptOp = nu;
+  const veld = orde === 'az' ? a => sorteerSleutel(a.title) : orde === 'artist' ? a => sorteerSleutel(a.artist)
+    : a => (catSleutel(a) ?? '').toLowerCase();
+  const rij = gesorteerd().filter(a => orde !== 'catno' || catSleutel(a));
+  const doel = rij.find(a => veld(a).startsWith(getypt)) ?? rij.find(a => vergelijk.compare(veld(a), getypt) > 0);
+  if (doel) spring(ruggen.get(sleutel(doel)));
+});
+function spring(el) {
+  if (!el) return;
+  const kopH = document.querySelector('header').offsetHeight, y = el.getBoundingClientRect().top + scrollY - kopH;
+  let voor = el; for (let i = 0; i < 5 && voor.previousElementSibling; i++) voor = voor.previousElementSibling;
+  window.scrollTo({ top: voor.getBoundingClientRect().top + scrollY - kopH, behavior: 'instant' });
+  requestAnimationFrame(() => window.scrollTo({ top: y, behavior: 'smooth' }));
+  el.focus({ preventScroll: true });
+}
 
 // ---- de zones ----
 const kiezer = document.getElementById('zone');
