@@ -54,6 +54,9 @@
   .rug small.stil { opacity: .45; }
   @media (max-width: 1000px) { .rug em { display: none; } }
   @media (max-width: 600px) { .rug small + small { width: auto; max-width: 90px; } }
+  /* Het jaartal: helemaal rechts, een vaste kolom, stiller dan de speelduur. */
+  .rug small.jaar { width: 30px; font-size: 11px; font-weight: 400; letter-spacing: 0; opacity: .55; text-align: right; }
+  @media (max-width: 600px) { .rug small.jaar { width: 28px; max-width: none; } }
   .orde { overflow-x: auto; scrollbar-width: none; max-width: 100%; }
   .orde::-webkit-scrollbar { display: none; }
   .orde button { white-space: nowrap; }
@@ -297,7 +300,11 @@ function namen(s) {
 }
 
 let metDeep = false, deepBezig = false, catOrde = 'catno', catRug = 'sorted', capsuleAan = true;
-const opArtiest = (a, b) => vergelijk.compare(zonderLidwoord(a.artist), zonderLidwoord(b.artist)) || vergelijk.compare(a.title, b.title);
+// Binnen een artiest op releasedatum, oudste eerst (René, 26 okt; Basso's albums-artist: artiest, released, titel).
+// Zonder Deep Roon geen datum: dan op titel.
+const uitgave = a => a.released ?? (a.year ? String(a.year) : '');
+const opArtiest = (a, b) => vergelijk.compare(zonderLidwoord(a.artist), zonderLidwoord(b.artist))
+  || (uitgave(a) && uitgave(b) ? uitgave(a).localeCompare(uitgave(b)) : 0) || vergelijk.compare(a.title, b.title);
 const catSleutel = a => (catOrde === 'barcode' ? a.barcode : a.catno) || null;
 function gesorteerd() {
   const k = albums.slice();
@@ -348,6 +355,9 @@ function vul(el, a) {
   el.children[5].textContent = toon ? (catSleutel(a) ?? (opNummer ? a.barcode : null) ?? '') : '';
   el.children[5].hidden = !toon || !metDeep;
   el.children[5].classList.toggle('stil', opNummer && !catSleutel(a));
+  // Het jaartal helemaal rechts, in een eigen kolom (René: "voor de rust").
+  const jaar = a.released?.slice(0, 4) ?? (a.year ? String(a.year) : '');
+  el.children[6].textContent = jaar; el.children[6].hidden = !metDeep;
   kleur(el, a); albumVan.set(el, a);
 }
 
@@ -358,7 +368,8 @@ function teken() {
     if (!el) {
       el = document.createElement('div'); el.className = 'rug'; el.tabIndex = 0; el.setAttribute('role', 'button');
       el.append(document.createElement('b'), document.createElement('span'), document.createElement('i'),
-                document.createElement('em'), document.createElement('small'), document.createElement('small'));
+                document.createElement('em'), document.createElement('small'), document.createElement('small'), document.createElement('small'));
+      el.children[6].className = 'jaar';
       ruggen.set(sleutel(a), el);
     }
     vul(el, a);
