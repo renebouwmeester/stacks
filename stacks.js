@@ -100,11 +100,11 @@ function layout(v) {
       { type: 'string', title: 'Deep Roon address (empty is off)', setting: 'deep', maxlength: 200 },
       { type: 'label', title: deep.stand },
     ] },
-    { type: 'dropdown', title: 'Catalogue Number order uses', setting: 'catorde',
+    { type: 'dropdown', title: 'Catalog # order uses', setting: 'catorde',
       values: [{ title: 'Catalogue number', value: 'catno' }, { title: 'Barcode', value: 'barcode' }] },
     // Het nummer op de rug aan of uit (René, 26 okt): altijd, of alleen als de stapel erop gesorteerd is.
     { type: 'dropdown', title: 'Catalogue number on the spines', setting: 'catrug',
-      values: [{ title: 'Only in Catalogue Number order', value: 'sorted' }, { title: 'Always', value: 'always' }] },
+      values: [{ title: 'Only in Catalog # order', value: 'sorted' }, { title: 'Always', value: 'always' }] },
     // De speelcapsule onderin als Now Playing dicht is: aan of uit (René, 26 okt: "de mini-player optioneel").
     { type: 'dropdown', title: 'Mini player when Now Playing is hidden', setting: 'capsule',
       values: [{ title: 'Show', value: 'on' }, { title: 'Hide', value: 'off' }] },
