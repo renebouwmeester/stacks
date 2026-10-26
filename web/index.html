@@ -238,7 +238,7 @@
     <button data-orde="shuffled">Shuffled</button>
     <button data-orde="catno" data-deep hidden>Catalog #</button>
   </div>
-  <button id="paneelKnop" class="paneelknop" title="Now Playing" aria-label="Now Playing" aria-pressed="false"></button>
+  <button id="paneelKnop" class="paneelknop" title="Now Playing (⌥N)" aria-label="Now Playing" aria-keyshortcuts="Alt+N" aria-pressed="false"></button>
 </header>
 <main id="stapel"></main>
 <div id="leeg" hidden></div>
@@ -616,7 +616,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') sluit(); });
 const sorteerSleutel = t => zonderLidwoord(t ?? '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 let getypt = '', getyptOp = 0;
 document.addEventListener('keydown', e => {
-  if (e.metaKey || e.ctrlKey || e.altKey || e.key.length !== 1 || e.target.closest('select, input, textarea')) return;
+  if (e.metaKey || e.ctrlKey || e.altKey || e.key.length !== 1 || e.target.closest?.('select, input, textarea')) return;
   if (!['az', 'artist', 'catno'].includes(orde)) return;
   if (!/[\p{L}\p{N} \-.]/u.test(e.key)) return;
   const nu = Date.now();
@@ -671,6 +671,12 @@ function zetLessenaar(open, bewaar = true) {
   if (open) haalWachtrij();
 }
 paneelKnop.addEventListener('click', () => zetLessenaar(!lesOpen));
+// ⌥N (Alt+N): Now Playing in/uit (René, 26 okt — "de L van lessenaar zegt een Engelstalige niets"; ⌥⌘L is in Safari en
+// Chrome Downloads). Op de toets, niet op het teken: ⌥N maakt op een Mac een tilde.
+document.addEventListener('keydown', e => {
+  if (e.code !== 'KeyN' || !e.altKey || e.metaKey || e.ctrlKey || e.shiftKey || e.target.closest?.('input, textarea, select')) return;
+  e.preventDefault(); zetLessenaar(!lesOpen);
+});
 cap.addEventListener('click', e => { if (!e.target.closest('button')) zetLessenaar(true); });
 
 // Twee gezichten, een stille crossfade: Now Playing en Queue.
