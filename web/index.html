@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0d0d10">
+<title>Stacks</title>
+<style>
+  /* Basso's stapel (Stapel.swift, StapelRug), overgenomen en aangepast: een rug is een liggende balk in de kleur van de
+     hoes, artiest semibold in t1, titel regular in t2, een verloop eroverheen (wit 10% boven, zwart 18% onder).
+     Zonder speelduur (de officiële API geeft die niet) is elke rug even dik: Basso's dikte voor 45 minuten. */
+  :root {
+    --achter: #0d0d10; --tekst: rgba(255,255,255,.9); --zacht: rgba(255,255,255,.45);
+    --rand: max(16px, env(safe-area-inset-left)); --rand-r: max(16px, env(safe-area-inset-right));
+    --dikte: 28px; --letter: 12px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--achter); color: var(--tekst);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+    -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%; }
+  header { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    padding: calc(env(safe-area-inset-top) + 14px) var(--rand-r) 12px var(--rand);
+    background: rgba(13,13,16,.82); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
+  h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -.01em; }
+  #tel { color: var(--zacht); font-size: 13px; font-variant-numeric: tabular-nums; }
+  .zone { margin-left: auto; }
+  .orde { display: flex; background: rgba(255,255,255,.08); border-radius: 8px; padding: 2px; }
+  .orde button { appearance: none; border: 0; background: none; color: var(--tekst); font: inherit; font-size: 13px;
+    padding: 5px 12px; border-radius: 6px; cursor: pointer; }
+  .orde button[aria-pressed="true"] { background: rgba(255,255,255,.18); font-weight: 600; }
+  #stapel { display: flex; flex-direction: column; gap: 1px; padding-bottom: env(safe-area-inset-bottom); }
+  .rug { display: flex; align-items: center; gap: 12px; height: var(--h, var(--dikte)); padding: 0 var(--rand-r) 0 var(--rand);
+    background-color: var(--bg, #383838);
+    background-image: linear-gradient(to bottom, rgba(255,255,255,.10), transparent 50%, rgba(0,0,0,.18));
+    font-size: var(--letter); white-space: nowrap; overflow: hidden; cursor: pointer;
+    content-visibility: auto; contain-intrinsic-size: auto var(--dikte); }
+  .rug b { font-weight: 600; color: var(--t1, #fff); overflow: hidden; text-overflow: ellipsis; flex: 0 1 auto; }
+  .rug span { color: var(--t2, rgba(255,255,255,.75)); overflow: hidden; text-overflow: ellipsis; flex: 0 1 auto; min-width: 0; }
+  .rug b { min-width: 0; }
+  /* Met Deep Roon (StapelRug): rechts de speelduur, op een breed scherm het HI-RES-schildje, en bij de volgorde op
+     catalogusnummer dat nummer in een eigen rechterkolom (variant D uit de tekenbank). */
+  .rug i { flex: 1 0 8px; }
+  .rug em { font-style: normal; font-size: 8px; font-weight: 600; letter-spacing: 1.1px; color: var(--t2, #fff); opacity: .85;
+    padding: 1px 3px; border: .75px solid color-mix(in srgb, var(--t2, #fff) 55%, transparent); border-radius: 3px; }
+  .rug small { font-size: 11px; color: var(--t2, #fff); opacity: .8; font-variant-numeric: tabular-nums; flex: 0 0 auto; }
+  .rug small + small { font-size: 10px; font-weight: 500; letter-spacing: .4px; opacity: .7; width: 110px; text-align: right;
+    overflow: hidden; text-overflow: ellipsis; }
+  .rug small.stil { opacity: .45; }
+  @media (max-width: 1000px) { .rug em { display: none; } }
+  @media (max-width: 600px) { .rug small + small { width: auto; max-width: 90px; } }
+  .orde { overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+  .orde::-webkit-scrollbar { display: none; }
+  .orde button { white-space: nowrap; }
+  /* De zonekiezer: waar Play speelt, per browser onthouden. */
+  .zone { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--zacht); }
+  .zone select { appearance: none; -webkit-appearance: none; border: 0; font: inherit; font-size: 13px; color: var(--tekst);
+    background: rgba(255,255,255,.08); border-radius: 8px; padding: 5px 26px 5px 10px; cursor: pointer;
+    background-image: linear-gradient(45deg, transparent 50%, var(--zacht) 50%), linear-gradient(135deg, var(--zacht) 50%, transparent 50%);
+    background-position: calc(100% - 13px) 50%, calc(100% - 9px) 50%; background-size: 4px 4px; background-repeat: no-repeat; }
+  .rug:focus-visible { outline: 2px solid rgba(255,255,255,.6); outline-offset: -2px; }
+
+  /* Het geopende album als boekje (Stacks op het hele scherm op de Mac, StapelOpen.boekje; René, 26 okt 2026: "het design
+     van Stacks FullScreen aanhouden"): links de voorkant van rand tot rand, zonder radius, zo groot als de halve breedte of
+     de hoogte van het scherm toelaat; rechts de achterkant — artiest en titel, het inlegvel, en onderaan de feitenregel
+     met de knoppen. Achtergrond: de rugkleur, donker en gedempt (binnenKleur). Op telefoonbreedte onder elkaar. */
+  .open { display: flex; align-items: stretch; background: var(--binnen, #333); opacity: 0; transition: opacity .3s ease-in-out;
+    --f: 1.27; --r: 44px; }
+  .open.zichtbaar { opacity: 1; }
+  .voorkant { flex: 0 0 auto; width: var(--hoes); height: var(--hoes); object-fit: cover; display: block; background: rgba(255,255,255,.06); }
+  .achter { flex: 1; min-width: 0; min-height: var(--hoes); display: flex; flex-direction: column;
+    padding: var(--r) max(var(--r), env(safe-area-inset-right)) 24px var(--r); }
+  .kop .artiest { font-size: 20px; color: rgba(255,255,255,.7); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kop .titel { margin-top: 4px; font-size: 26px; font-weight: 600; color: #fff; line-height: 1.2;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .inleg { margin-top: 26px; }
+  .tracks { display: grid; column-gap: 22px; }
+  .tracks.twee { grid-auto-flow: column; }
+  .track { display: flex; align-items: baseline; gap: 7px; padding: 2.5px 0; cursor: pointer; min-width: 0; }
+  .tracks.twee .track { padding: 3.5px 0; }
+  .track:hover .titel { color: #fff; }
+  .track .nr { flex: 0 0 auto; width: var(--nrb); font-size: calc(11.5px * var(--f)); color: rgba(255,255,255,.4); font-variant-numeric: tabular-nums; }
+  .track .titel { font-size: calc(12.5px * var(--f)); color: rgba(255,255,255,.85); line-height: 1.25;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .track .titel { flex: 1; min-width: 0; }
+  .track .tijd { flex: 0 0 auto; margin-left: 4px; font-size: calc(11.5px * var(--f)); color: rgba(255,255,255,.45); font-variant-numeric: tabular-nums; }
+  .sessie { margin-top: 8px; font-size: calc(11px * var(--f)); line-height: 1.35; color: rgba(255,255,255,.45); white-space: pre-line; }
+  .musici { margin-top: 12px; font-size: calc(11.5px * var(--f)); line-height: 1.35; color: rgba(255,255,255,.7); white-space: pre-line; }
+  .vul { flex: 1 0 10px; }
+  .info { font-size: calc(11px * var(--f)); color: rgba(255,255,255,.45); padding-bottom: 24px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .knoppen { display: flex; align-items: center; gap: 9px; }
+  .knoppen .vul { flex: 1; }
+  .knop { appearance: none; border: 0; color: #fff; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,.16); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+  .knop:hover { background: rgba(255,255,255,.24); }
+  .knop:active { transform: scale(.96); }
+  .knop svg { width: 13px; height: 13px; fill: currentColor; }
+  .knop.rond { width: 34px; height: 34px; border-radius: 50%; }
+  .knop.woord { height: 34px; border-radius: 17px; padding: 0 16px; gap: 7px; font: inherit; font-size: 14px; font-weight: 600; }
+  /* Smaller dan een Mac-scherm (de iPad): kleinere randen en letters, zelfde boekje. */
+  @media (max-width: 1100px) { .open { --f: 1; --r: 28px; } .kop .artiest { font-size: 17px; } .kop .titel { font-size: 22px; } .inleg { margin-top: 20px; } }
+  @media (max-width: 600px) {
+    .open { flex-direction: column; --f: .9; --r: 18px; }
+    .voorkant { width: 100%; height: auto; aspect-ratio: 1; }
+    .achter { min-height: 0; padding: 18px var(--rand-r) 18px var(--rand); }
+    .tracks { grid-auto-flow: row; }
+    .info { padding-bottom: 14px; }
+  }
+  #melding { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 20px); transform: translateX(-50%);
+    background: rgba(40,40,46,.92); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); color: var(--tekst);
+    font-size: 13px; padding: 9px 16px; border-radius: 18px; opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 5; }
+  #melding.aan { opacity: 1; }
+  #leeg { padding: 40px var(--rand); color: var(--zacht); font-size: 14px; }
+  @media (max-width: 600px) { :root { --letter: 11px; } h1 { font-size: 20px; } .zone { margin-left: 0; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Stacks</h1>
+  <span id="tel"></span>
+  <label class="zone">Play on <select id="zone" aria-label="Zone"></select></label>
+  <div class="orde" role="group" aria-label="Order">
+    <button data-orde="released" data-deep hidden>Release Date</button>
+    <button data-orde="az">A-Z</button>
+    <button data-orde="artist">By Artist</button>
+    <button data-orde="added" data-deep hidden>Date Added</button>
+    <button data-orde="shuffled">Shuffled</button>
+    <button data-orde="catno" data-deep hidden>Catalogue Number</button>
+  </div>
+</header>
+<main id="stapel"></main>
+<div id="leeg" hidden></div>
+<div id="melding" role="status"></div>
+<script>
+// De volgordes van Basso's Stacks voor zover de officiële API ze toelaat (By Artist, A-Z, Shuffled); Release Date,
+// Date Added en Catalogue Number komen met Deep Roon. Lidwoorden tellen niet mee, zoals in Basso (zonderLidwoord).
+const stapel = document.getElementById('stapel'), tel = document.getElementById('tel'), leeg = document.getElementById('leeg');
+let albums = [], orde = 'artist', schudVolgorde = new Map();
+try { orde = localStorage.getItem('stacks.orde') || orde; } catch {}
+
+const vergelijk = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });
+const zonderLidwoord = t => (/^(the|a|an|de|het|een)\s+(.+)$/i.exec(t ?? '') || [, , t ?? ''])[2];
+const sleutel = a => a.image || (a.artist + '\u0000' + a.title);
+// Roon schrijft samenwerkingen als "A/B/C" (soms met spaties); op de rug zoals Apple: "A, B & C".
+function namen(s) {
+  const n = (s ?? '').split('/').map(x => x.trim()).filter(Boolean);
+  return n.length > 1 ? n.slice(0, -1).join(', ') + ' & ' + n.at(-1) : (n[0] ?? '');
+}
+
+let metDeep = false, deepBezig = false, catOrde = 'catno';
+const opArtiest = (a, b) => vergelijk.compare(zonderLidwoord(a.artist), zonderLidwoord(b.artist)) || vergelijk.compare(a.title, b.title);
+const catSleutel = a => (catOrde === 'barcode' ? a.barcode : a.catno) || null;
+function gesorteerd() {
+  const k = albums.slice();
+  // De volgordes van Deep Roon (Basso: Release Date en Date Added nieuwste eerst). Wat geen datum of nummer heeft, onderaan.
+  if (orde === 'released') return k.sort((a, b) => (b.released ?? String(b.year ?? '')).localeCompare(a.released ?? String(a.year ?? '')) || opArtiest(a, b));
+  if (orde === 'added') return k.sort((a, b) => (a.added ?? 1e9) - (b.added ?? 1e9) || opArtiest(a, b));
+  if (orde === 'catno') return k.sort((a, b) => {
+    const x = catSleutel(a), y = catSleutel(b);
+    return x && y ? vergelijk.compare(x, y) || opArtiest(a, b) : x ? -1 : y ? 1 : opArtiest(a, b);
+  });
+  if (orde === 'az') return k.sort((a, b) => vergelijk.compare(zonderLidwoord(a.title), zonderLidwoord(b.title)) || vergelijk.compare(a.artist, b.artist));
+  if (orde === 'shuffled') {
+    for (const a of k) if (!schudVolgorde.has(sleutel(a))) schudVolgorde.set(sleutel(a), Math.random());
+    return k.sort((a, b) => schudVolgorde.get(sleutel(a)) - schudVolgorde.get(sleutel(b)));
+  }
+  return k.sort(opArtiest);
+}
+
+// Basso's dikte: 20 minuten of minder 22 punt, 100 of meer 42; zonder speelduur de dikte van 45 minuten.
+const dikte = a => a.len ? 22 + Math.min(Math.max(a.len / 60 - 20, 0), 80) / 80 * 20 : null;
+// Boven het uur zoals Apple Music het schrijft (StapelRug.duurTekst).
+function duurTekst(sec) {
+  if (!sec) return '';
+  const m = Math.round(sec / 60);
+  return m < 60 ? `${m} min` : m % 60 === 0 ? `${m / 60} hr` : `${Math.floor(m / 60)} hr ${m % 60} min`;
+}
+
+function kleur(el, a) {
+  if (a.bg) { el.style.setProperty('--bg', '#' + a.bg); el.style.setProperty('--t1', '#' + a.t1); el.style.setProperty('--t2', '#' + a.t2); }
+}
+
+const ruggen = new Map();   // sleutel → element, zodat een nieuwe lading alleen de kleuren bijwerkt
+const albumVan = new WeakMap();   // element → album
+function vul(el, a) {
+  // Op naam gesorteerd staat de titel vooraan (Basso, titelEerst): de rug leest in de volgorde van de stapel.
+  const [eerst, dan] = orde === 'az' ? [a.title, namen(a.artist)] : [namen(a.artist), a.title];
+  el.children[0].textContent = eerst; el.children[1].textContent = dan;
+  el.title = `${namen(a.artist)} — ${a.title}`;
+  const h = dikte(a); if (h) el.style.setProperty('--h', h + 'px'); else el.style.removeProperty('--h');
+  el.children[3].hidden = !a.hr;
+  el.children[4].textContent = duurTekst(a.len); el.children[4].hidden = !a.len;
+  // Op catalogusnummer: het nummer rechts; zonder nummer de barcode, stiller (René, 26 okt).
+  el.children[5].textContent = orde === 'catno' ? (catSleutel(a) ?? a.barcode ?? '') : '';
+  el.children[5].hidden = orde !== 'catno';
+  el.children[5].classList.toggle('stil', orde === 'catno' && !catSleutel(a));
+  kleur(el, a); albumVan.set(el, a);
+}
+
+function teken() {
+  const frag = document.createDocumentFragment();
+  for (const a of gesorteerd()) {
+    let el = ruggen.get(sleutel(a));
+    if (!el) {
+      el = document.createElement('div'); el.className = 'rug'; el.tabIndex = 0; el.setAttribute('role', 'button');
+      el.append(document.createElement('b'), document.createElement('span'), document.createElement('i'),
+                document.createElement('em'), document.createElement('small'), document.createElement('small'));
+      el.children[3].textContent = 'HI-RES';
+      ruggen.set(sleutel(a), el);
+    }
+    vul(el, a);
+    frag.append(el);
+    if (open && open.sleutel === sleutel(a)) frag.append(open.el);
+  }
+  stapel.replaceChildren(frag);
+  for (const b of document.querySelectorAll('.orde button')) b.setAttribute('aria-pressed', b.dataset.orde === orde);
+}
+
+async function haal(eenmaal) {
+  let d;
+  try { d = await (await fetch('/api/albums', { cache: 'no-store' })).json(); }
+  catch { leeg.hidden = false; leeg.textContent = 'Stacks is not reachable'; return setTimeout(haal, 5000); }
+  const eerste = albums.length === 0, wasDeep = metDeep, wasAantal = albums.length, wasBezig = deepBezig;
+  albums = d.albums; metDeep = !!d.deep; deepBezig = !!d.deepBusy;
+  const catWas = catOrde; catOrde = d.catorde ?? 'catno';
+  for (const b of document.querySelectorAll('.orde [data-deep]')) b.hidden = !metDeep;
+  // Valt Deep Roon weg, dan valt een volgorde van Deep Roon terug op By Artist.
+  if (!metDeep && ['released', 'added', 'catno'].includes(orde)) orde = 'artist';
+  if (metDeep && !wasDeep) { try { orde = localStorage.getItem('stacks.orde') || orde; } catch {} }
+  tel.textContent = albums.length ? `${albums.length.toLocaleString('en')} albums${d.pending ? ` · colouring ${d.pending.toLocaleString('en')}` : ''}` : '';
+  leeg.hidden = albums.length > 0;
+  leeg.textContent = !d.core ? 'Waiting for Roon. Enable Stacks in Roon › Settings › Extensions' : d.loading ? 'Reading your library…' : 'No albums';
+  // Opnieuw ordenen alleen als de stapel echt anders is (eerste lading, albums erbij of eraf, Deep Roon komt of gaat of is
+  // klaar met lezen, een andere catalogussleutel); anders de ruggen ter plekke bijwerken, zodat de stapel niet onder je
+  // vingers verschuift terwijl de gegevens binnenkomen.
+  if (eerste || albums.length !== wasAantal || metDeep !== wasDeep || (wasBezig && !deepBezig) || catOrde !== catWas) teken();
+  else for (const a of albums) { const el = ruggen.get(sleutel(a)); if (el) vul(el, a); }
+  if (!eenmaal && (!d.core || d.loading || d.pending || d.deepBusy)) setTimeout(haal, d.pending || d.deepBusy ? 3000 : 2000);
+  else if (!eenmaal) setTimeout(haal, 60000);   // rustig bijhouden: nieuwe albums, Deep Roon die opkomt of wegvalt
+}
+
+// ---- het geopende album ----
+// Eén tegelijk; een klik op dezelfde rug of Esc sluit. Eerst ophalen, dan in één beweging openen (Basso: "opent in twee
+// fasen … kan dat in 1 beweging?"): tracks en hoes zijn er al als het vlak verschijnt.
+let open = null, zonesNu = [], zoneId = null;
+try { zoneId = localStorage.getItem('stacks.zone'); } catch {}
+const melding = document.getElementById('melding');
+let meldTimer;
+function meld(t) { melding.textContent = t; melding.classList.add('aan'); clearTimeout(meldTimer); meldTimer = setTimeout(() => melding.classList.remove('aan'), 2600); }
+
+const ICOON = {
+  play: '<path d="M3 1.8v12.4c0 .7.8 1.1 1.4.7l9.6-6.2c.5-.3.5-1.1 0-1.4L4.4 1.1C3.8.7 3 1.1 3 1.8z"/>',
+  pause: '<rect x="3" y="1.5" width="3.6" height="13" rx="1"/><rect x="9.4" y="1.5" width="3.6" height="13" rx="1"/>',
+  shuffle: '<path d="M11.5 2.2V4H10c-1.6 0-2.6.9-3.5 2.1L5 8.2C4.3 9.2 3.7 10 2.6 10H1v1.8h1.6c1.9 0 2.9-1.2 3.8-2.5l1.5-2.1C8.6 6.3 9.1 5.8 10 5.8h1.5v1.8L15 4.9zM1 4h1.6c1 0 1.6.5 2.2 1.3l-1 1.5C3.3 6.2 3 5.8 2.6 5.8H1zm9 6.2c-.9 0-1.4-.5-2.1-1.4l1-1.5c.6.8 1 1.1 1.1 1.1h1.5V6.6L15 9.3l-3.5 2.7V10.2z"/>',
+  next: '<rect x="1" y="2" width="9" height="1.8" rx=".9"/><rect x="1" y="6" width="6" height="1.8" rx=".9"/><rect x="1" y="12.2" width="9" height="1.8" rx=".9"/><path d="M9.5 6.9v4.2l4.5-2.1z"/>',
+  later: '<rect x="1" y="2" width="9" height="1.8" rx=".9"/><rect x="1" y="6.1" width="9" height="1.8" rx=".9"/><rect x="1" y="10.2" width="6" height="1.8" rx=".9"/><path d="M11 9.6h1.6v-1.6h1.6v1.6h1.6v1.6h-1.6v1.6h-1.6v-1.6H11z"/>',
+};
+const svg = n => `<svg viewBox="0 0 16 16" aria-hidden="true">${ICOON[n]}</svg>`;
+
+// binnenKleur uit Stapel.swift: dezelfde tint, verzadiging ×1.1 (hooguit 0.75), helderheid 45% (tussen 0.20 en 0.30).
+function binnenKleur(hex) {
+  if (!hex) return '#333';
+  const v = parseInt(hex, 16), r = (v >> 16 & 255) / 255, g = (v >> 8 & 255) / 255, b = (v & 255) / 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  let h = 0;
+  if (d > 0) { h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h /= 6; if (h < 0) h += 1; }
+  const sat = Math.min((mx > 0 ? d / mx : 0) * 1.1, .75), hel = Math.min(Math.max(mx * .45, .20), .30);
+  const k = n => { const x = (n + h * 6) % 6; return hel - hel * sat * Math.max(0, Math.min(x, 4 - x, 1)); };
+  return `rgb(${[5, 3, 1].map(n => Math.round(k(n) * 255)).join(',')})`;
+}
+
+const zoneNu = () => zonesNu.find(z => z.id === zoneId);
+const speeltDit = a => { const z = zoneNu(); return z?.state === 'playing' && z.now?.album === a.title; };
+
+async function post(pad, body) {
+  const r = await fetch(pad, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || 'Something went wrong');
+  return d;
+}
+
+async function speel(a, action, track) {
+  if (!zoneNu()) return meld('Choose a zone first');
+  try {
+    await post('/api/play', { n: a.n, image: a.image, zone: zoneId, action, track });
+    meld({ 'Play Now': `Playing on ${zoneNu().name}`, 'Shuffle': `Shuffling on ${zoneNu().name}`, 'Play From Here': `Playing on ${zoneNu().name}`,
+           'Add Next': 'Playing next', 'Queue': 'Added to the queue' }[action] ?? 'Done');
+    setTimeout(haalZones, 800);
+  } catch (e) { meld(e.message); }
+}
+
+function knoppenRij(a) {
+  const rij = document.createElement('div'); rij.className = 'knoppen';
+  const speelt = speeltDit(a);
+  rij.innerHTML = `<button class="knop woord" data-doe="play">${svg(speelt ? 'pause' : 'play')}${speelt ? 'Pause' : 'Play'}</button><span class="vul"></span>
+    <button class="knop rond" data-doe="Shuffle" title="Shuffle" aria-label="Shuffle">${svg('shuffle')}</button>
+    <button class="knop rond" data-doe="Add Next" title="Play Next" aria-label="Play Next">${svg('next')}</button>
+    <button class="knop rond" data-doe="Queue" title="Play Later" aria-label="Play Later">${svg('later')}</button>`;
+  rij.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.doe !== 'play') return speel(a, b.dataset.doe);
+    if (speeltDit(a)) post('/api/control', { zone: zoneId, control: 'pause' }).then(() => setTimeout(haalZones, 500)).catch(e => meld(e.message));
+    else speel(a, 'Play Now');
+  });
+  return rij;
+}
+
+// De uitvoerenden uit de tracks (Roon's subtitle per track), zonder de albumartiest zelf: de officiële API kent geen
+// credits, dit is wat er wél is. Hooguit tien namen.
+function musici(a, tracks) {
+  const albumNamen = new Set(a.artist.split('/').map(x => x.trim().toLowerCase()));
+  const tel = new Map();
+  for (const t of tracks) for (const n of t.artist.split(/,\s*/).map(x => x.trim()).filter(Boolean)) {
+    const k = n.replace(/[’']/g, "'").toLowerCase();
+    if (!albumNamen.has(k)) tel.set(n, (tel.get(n) ?? 0) + 1);
+  }
+  return [...tel.entries()].sort((x, y) => y[1] - x[1]).slice(0, 10).map(x => x[0]);
+}
+
+// De speelduur in de feitenregel (Basso, onzeDuur): "51 min", "1 h 18 min".
+function onzeDuur(sec) {
+  if (!sec) return '';
+  const m = Math.round(sec / 60);
+  return m >= 60 ? (m % 60 === 0 ? `${m / 60} h` : `${Math.floor(m / 60)} h ${m % 60} min`) : `${Math.max(1, m)} min`;
+}
+
+// Roon's credits (Deep Roon) zoals Basso's inlegvel ze toont: de musici als "Naam, instrument, instrument" (hooguit drie,
+// klein geschreven), wie schreef, produceerde of vastlegde niet erbij; daaronder de sessie: "Produced by …", "Engineer …".
+function uitCredits(credits) {
+  const geenSpeler = /compos|lyric|writ|arrang|author|librett|conduct/i;
+  const perNaam = new Map();
+  for (const c of credits) {
+    if (c.category !== 'performance' || geenSpeler.test(c.role)) continue;
+    for (const n of c.names ?? []) {
+      if (!perNaam.has(n)) perNaam.set(n, []);
+      const r = c.role.toLowerCase();
+      if (!['performer', 'guest', 'primary artist', 'main artist', 'featured artist'].includes(r) && !perNaam.get(n).includes(r)) perNaam.get(n).push(r);
+    }
+  }
+  const musici = [...perNaam].slice(0, 14).map(([n, r]) => r.length ? `${n}, ${r.slice(0, 3).join(', ')}` : n);
+  const rol = r => credits.filter(c => c.role === r).flatMap(c => c.names ?? []);
+  const sessie = [];
+  if (rol('Producer').length) sessie.push(`Produced by ${rol('Producer').join(', ')}`);
+  const tech = [...new Set([...rol('Engineer'), ...rol('Recording Engineer')])];
+  if (tech.length) sessie.push(`Engineer ${tech.join(', ')}`);
+  return { musici, sessie };
+}
+
+function bouwOpen(a, d) {
+  const el = document.createElement('section'); el.className = 'open';
+  el.style.setProperty('--binnen', binnenKleur(a.bg));
+  const breed = stapel.clientWidth > 600;
+  // De halve breedte, of zo hoog als het scherm toelaat onder de kop en de rug (boekjeHoes).
+  const kop = document.querySelector('header').offsetHeight;
+  const hoes = Math.round(Math.min(stapel.clientWidth / 2, window.innerHeight - kop - 28));
+  el.style.setProperty('--hoes', hoes + 'px');
+  const img = new Image(); img.className = 'voorkant'; img.alt = '';
+  img.src = `/cover/${encodeURIComponent(a.image)}?size=${Math.min(1200, Math.round((breed ? hoes : stapel.clientWidth) * (devicePixelRatio || 1)))}`;
+
+  const achter = document.createElement('div'); achter.className = 'achter';
+  const k = document.createElement('div'); k.className = 'kop';
+  k.innerHTML = '<div class="artiest"></div><div class="titel"></div>';
+  k.children[0].textContent = namen(a.artist); k.children[1].textContent = a.title;
+
+  const inleg = document.createElement('div'); inleg.className = 'inleg';
+  const lijst = document.createElement('div'); lijst.className = 'tracks';
+  el.style.setProperty('--nrb', Math.max(20, Math.max(...d.tracks.map(t => t.nr.length), 1) * 7.5) + 'px');
+  d.tracks.forEach((t, i) => {
+    const r = document.createElement('div'); r.className = 'track'; r.title = `Play from “${t.title}”`;
+    r.innerHTML = '<span class="nr"></span><span class="titel"></span><span class="tijd"></span>';
+    r.children[0].textContent = t.nr; r.children[1].textContent = t.title;
+    // De tracktijd uit Deep Roon (zelfde album, zelfde volgorde).
+    const len = d.deep?.tracks?.length === d.tracks.length ? d.deep.tracks[i].len : null;
+    r.children[2].textContent = len ? `${Math.floor(len / 60)}:${String(len % 60).padStart(2, '0')}` : '';
+    r.addEventListener('click', () => speel(a, 'Play From Here', i));
+    lijst.append(r);
+  });
+  inleg.append(lijst);
+  const { musici: m, sessie } = d.deep?.credits?.length ? uitCredits(d.deep.credits) : { musici: musici(a, d.tracks), sessie: [] };
+  if (m.length) { const mu = document.createElement('div'); mu.className = 'musici'; mu.textContent = m.join('\n'); inleg.append(mu); }
+  if (sessie.length) { const se = document.createElement('div'); se.className = 'sessie'; se.textContent = sessie.join('\n'); inleg.append(se); }
+
+  const vul = document.createElement('div'); vul.className = 'vul';
+  const voet = document.createElement('div'); voet.className = 'voet';
+  const info = document.createElement('div'); info.className = 'info';
+  // De feitenregel: jaar, label, catalogusnummer, tracks, speelduur in onze maat (infoInOnzeMaat: "1 h 18 min").
+  const dp = d.deep ?? {};
+  info.textContent = [dp.year ?? a.year, dp.label ?? a.label, dp.catno ?? a.catno,
+    `${d.tracks.length} ${d.tracks.length === 1 ? 'track' : 'tracks'}`, onzeDuur(dp.len ?? a.len)].filter(Boolean).join(' · ');
+  voet.append(info, knoppenRij(a));
+  achter.append(k, inleg, vul, voet);
+  el.append(img, achter);
+  return { el, img, links: voet, lijst, achter, hoes, breed };
+}
+
+// De tracks krijgen voorrang op de volle breedte (René, bij Nightfall en Field: "mooier als het niet naar twee kolommen
+// ging"): eerst één kolom; pas als de achterkant dan hoger wordt dan de voorkant, twee.
+function kolommen(o) {
+  const n = o.lijst.children.length;
+  o.lijst.classList.remove('twee'); o.lijst.style.gridTemplateRows = ''; o.lijst.style.gridTemplateColumns = '';
+  if (!o.breed || n <= 8 || o.achter.offsetHeight <= o.hoes + 1) return;
+  o.lijst.classList.add('twee');
+  o.lijst.style.gridTemplateRows = `repeat(${Math.ceil(n / 2)}, auto)`;
+  o.lijst.style.gridTemplateColumns = 'repeat(2, minmax(0, 1fr))';
+}
+
+let bezig = null;
+async function openAlbum(rug) {
+  const a = albumVan.get(rug), k = sleutel(a);
+  if (open) { const was = open; sluit(); if (was.sleutel === k) return; }
+  if (bezig === k) return;
+  bezig = k;
+  let d;
+  try {
+    let r = await fetch(`/api/album?n=${a.n}&image=${encodeURIComponent(a.image ?? '')}${a.deep ? `&deep=${a.deep}` : ''}`);
+    // De bibliotheek veranderde: de extensie leest hem opnieuw; even later nog eens.
+    if (r.status === 409) { await new Promise(ok => setTimeout(ok, 2500)); await haal(true); const b = albums.find(x => sleutel(x) === k); if (b) r = await fetch(`/api/album?n=${b.n}&image=${encodeURIComponent(b.image ?? '')}${b.deep ? `&deep=${b.deep}` : ''}`); }
+    d = await r.json();
+    if (!r.ok) throw new Error(d.error);
+  } catch (e) { bezig = null; return meld(e.message || 'Roon did not answer'); }
+  if (bezig !== k) return;
+  bezig = null;
+  const o = bouwOpen(a, d);
+  await new Promise(ok => { if (o.img.complete) ok(); o.img.onload = o.img.onerror = ok; setTimeout(ok, 800); });
+  open = { sleutel: k, el: o.el, album: a, links: o.links };
+  rug.after(o.el);
+  kolommen(o);
+  // De rug schuift helemaal naar boven, onder de kop (René, 26 okt: "zoals in Basso — de voorgaande hoezen heb je al
+  // gelezen, en je wilt verder bladeren"): dan staan het boekje en de volgende ruggen in beeld.
+  const kopH = document.querySelector('header').offsetHeight;
+  window.scrollBy({ top: rug.getBoundingClientRect().top - kopH, behavior: 'smooth' });
+  requestAnimationFrame(() => o.el.classList.add('zichtbaar'));
+}
+function sluit() { if (!open) return; open.el.remove(); open = null; }
+
+stapel.addEventListener('click', e => { const r = e.target.closest('.rug'); if (r) openAlbum(r); });
+stapel.addEventListener('keydown', e => { const r = e.target.closest('.rug'); if (r && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openAlbum(r); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') sluit(); });
+
+// ---- de zones ----
+const kiezer = document.getElementById('zone');
+async function haalZones() {
+  try { zonesNu = (await (await fetch('/api/zones', { cache: 'no-store' })).json()).zones; } catch { return; }
+  if (!zoneNu() && zonesNu.length) zoneId = (zonesNu.find(z => z.state === 'playing') ?? zonesNu[0]).id;
+  kiezer.replaceChildren(...zonesNu.map(z => new Option(z.name, z.id, false, z.id === zoneId)));
+  // Play wordt Pause als dit album op de gekozen zone speelt.
+  if (open) { const oud = open.links.querySelector('.knoppen'); oud.replaceWith(knoppenRij(open.album)); }
+}
+kiezer.addEventListener('change', () => { zoneId = kiezer.value; try { localStorage.setItem('stacks.zone', zoneId); } catch {} haalZones(); });
+haalZones(); setInterval(haalZones, 4000);
+
+document.querySelector('.orde').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.orde === 'shuffled') schudVolgorde.clear();
+  orde = b.dataset.orde;
+  try { localStorage.setItem('stacks.orde', orde); } catch {}
+  teken(); window.scrollTo({ top: 0 });
+});
+haal();
+</script>
+</body>
+</html>

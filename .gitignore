@@ -1,0 +1,6 @@
+node_modules/
+tekening/hoezen/
+tekening/*.json
+!tekening/keuze.json
+data/
+config.json

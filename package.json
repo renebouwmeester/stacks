@@ -1,0 +1,16 @@
+{
+  "name": "stacks-for-roon",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Basso's Stacks for a Roon library — a web app served by a Roon extension",
+  "type": "commonjs",
+  "dependencies": {
+    "jpeg-js": "^0.4.4",
+    "node-roon-api": "github:roonlabs/node-roon-api",
+    "node-roon-api-browse": "github:roonlabs/node-roon-api-browse",
+    "node-roon-api-image": "github:roonlabs/node-roon-api-image",
+    "node-roon-api-settings": "github:roonlabs/node-roon-api-settings",
+    "node-roon-api-status": "github:roonlabs/node-roon-api-status",
+    "node-roon-api-transport": "github:roonlabs/node-roon-api-transport"
+  }
+}
