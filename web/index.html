@@ -252,10 +252,10 @@
     <div class="np">
       <img class="np-hoes" alt="">
       <div class="klok">
-        <div class="lijn" title="Seek"><i></i></div>
+        <div class="lijn"><i></i></div>
         <div class="tijden"><span class="pos">0:00</span><span class="mid"><em hidden></em><span class="zn"></span></span><span class="duur"></span></div>
       </div>
-      <div class="meta"><div class="t"></div><div class="a"></div><div class="b" title="Show in the stack"></div></div>
+      <div class="meta"><div class="t"></div><div class="a"></div><div class="b"></div></div>
       <div class="transport">
         <button class="modus" data-doe="shuffle" title="Shuffle" aria-label="Shuffle"></button>
         <button data-doe="previous" title="Previous" aria-label="Previous"></button>
@@ -265,7 +265,7 @@
       </div>
       <label class="volume" hidden><span class="luid"></span><input type="range" min="0" max="100" step="1" aria-label="Volume"><span class="vw"></span></label>
     </div>
-    <div class="volgende"><div class="blok" title="Show the queue"></div></div>
+    <div class="volgende"><div class="blok"></div></div>
   </div>
   <div class="gezicht wachtrij weg"></div>
   <div class="wissel">
@@ -332,7 +332,8 @@ function vul(el, a) {
   // Op naam gesorteerd staat de titel vooraan (Basso, titelEerst): de rug leest in de volgorde van de stapel.
   const [eerst, dan] = orde === 'az' ? [a.title, namen(a.artist)] : [namen(a.artist), a.title];
   el.children[0].textContent = eerst; el.children[1].textContent = dan;
-  el.title = `${namen(a.artist)} — ${a.title}`;
+  // Geen tooltip bij het aanwijzen (René); de naam voor schermlezers.
+  el.setAttribute('aria-label', `${namen(a.artist)} — ${a.title}`);
   const h = dikte(a); if (h) el.style.setProperty('--h', h + 'px'); else el.style.removeProperty('--h');
   // Het schildje: het echte formaat (24/96, MQA, Mixed …), niet bij cd-kwaliteit.
   const fmt = a.fmt && a.fmt !== '16/44.1' ? a.fmt : null;
@@ -526,7 +527,7 @@ function bouwOpen(a, d) {
   const lijst = document.createElement('div'); lijst.className = 'tracks';
   el.style.setProperty('--nrb', Math.max(20, Math.max(...d.tracks.map(t => t.nr.length), 1) * 7.5) + 'px');
   d.tracks.forEach((t, i) => {
-    const r = document.createElement('div'); r.className = 'track'; r.title = `Play from “${t.title}”`;
+    const r = document.createElement('div'); r.className = 'track';
     r.innerHTML = '<span class="nr"></span><span class="titel"></span><span class="tijd"></span>';
     r.children[0].textContent = t.nr; r.children[1].textContent = t.title;
     // De tracktijd uit Deep Roon (zelfde album, zelfde volgorde).
@@ -835,7 +836,7 @@ function toonWachtrij() {
   const w = les.querySelector('.wachtrij');
   const h = document.createElement('h2'); h.textContent = wachtrijNu.length ? 'Queue' : 'The queue is empty';
   const rijen = wachtrijNu.map((i, n) => {
-    const r = rijEl(i, n === 0); r.title = n === 0 ? 'Playing now' : 'Play from here';
+    const r = rijEl(i, n === 0);
     if (n > 0) r.addEventListener('click', () => post('/api/jump', { zone: zoneId, item: i.id }).then(() => setTimeout(() => { haalZones(); haalWachtrij(); }, 400)).catch(e => meld(e.message)));
     return r;
   });
