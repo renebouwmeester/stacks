@@ -199,11 +199,17 @@ async function speel({ n, image: img, zone, track, action }) {
     const a = await naarAlbum(n, img, zone);
     const lijst = a.items.filter(i => i.hint === 'action_list' && i.title !== 'Play Album');
     const titel = (/^\d+(?:-\d+)?\.\s+(.*)$/.exec(lijst[track]?.title ?? '') ?? [])[1];
+    log('play from here:', JSON.stringify(titel), 'track', track + 1, 'van', lijst.length);
     await speel({ n, image: img, zone, action: 'Play Now' });
+    log('play from here: album speelt');
     if (track === 0) return { ok: true };
     const item = await wachtOpWachtrij(zone, titel, lijst.length);
+    log('play from here: in de wachtrij', item ? `gevonden (${item.queue_item_id})` : 'NIET gevonden');
     if (!item) throw new Error('Playing from the start: the queue did not show the track');
-    await metLimiet('play_from_here', (ok, mis) => transport.play_from_here(zone, item.queue_item_id, m => m === 'Success' ? ok() : mis(new Error(String(m)))));
+    await metLimiet('play_from_here', (ok, mis) => transport.play_from_here(zone, item.queue_item_id, (m, b) => {
+      log('play from here: antwoord', m, b ? JSON.stringify(b).slice(0, 120) : '');
+      m === 'Success' ? ok() : mis(new Error(String(m)));
+    }));
     return { ok: true };
   }
   const schud = action === 'Shuffle';
@@ -230,6 +236,7 @@ function wachtOpWachtrij(zone, titel, aantal) {
     const t = setTimeout(() => stop(null), 4000);
     let items = [];
     abo = transport.subscribe_queue(zone, Math.max(aantal + 5, 50), (cmd, d) => {
+      log('wachtrij:', cmd, cmd === 'Subscribed' ? `${d?.items?.length ?? 0} items` : `${d?.changes?.length ?? 0} wijzigingen`);
       if (cmd === 'Subscribed') items = d.items ?? [];
       else if (cmd === 'Changed') {
         for (const c of d.changes ?? []) {

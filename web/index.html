@@ -25,7 +25,19 @@
     background: rgba(13,13,16,.82); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
   h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -.01em; }
   #tel { color: var(--zacht); font-size: 13px; font-variant-numeric: tabular-nums; }
-  .zone { margin-left: auto; }
+  /* Naam en aantal op één basislijn (René: "lijnt niet lekker"). */
+  .naam { display: flex; align-items: baseline; gap: 12px; }
+  /* De bediening van de gekozen zone, bovenin (René, 26 okt): wat er speelt, vorige, play/pause, volgende. */
+  .speler { margin-left: auto; display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .speler[hidden] { display: none; }
+  .speler .nu { font-size: 13px; color: var(--zacht); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 280px; margin-right: 6px; }
+  .speler .nu b { color: var(--tekst); font-weight: 600; }
+  .speler .knop.rond.klein { width: 30px; height: 30px; background: none; box-shadow: none; }
+  .speler .knop.rond.klein:hover { background: rgba(255,255,255,.12); }
+  .speler .knop svg { width: 15px; height: 15px; }
+  .speler .knop.klein svg { width: 13px; height: 13px; }
+  .zone { margin-left: 8px; }
+  .speler[hidden] + .zone { margin-left: auto; }
   .orde { display: flex; background: rgba(255,255,255,.08); border-radius: 8px; padding: 2px; }
   .orde button { appearance: none; border: 0; background: none; color: var(--tekst); font: inherit; font-size: 13px;
     padding: 5px 12px; border-radius: 6px; cursor: pointer; }
@@ -94,10 +106,13 @@
   .knoppen { display: flex; align-items: center; gap: 9px; }
   .knoppen .vul { flex: 1; }
   .knop { appearance: none; border: 0; color: #fff; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
-    background: rgba(255,255,255,.16); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
-  .knop:hover { background: rgba(255,255,255,.24); }
+    background: rgba(255,255,255,.13); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+    box-shadow: inset 0 0 0 .5px rgba(255,255,255,.12); transition: background .15s; }
+  .knop:hover { background: rgba(255,255,255,.22); }
   .knop:active { transform: scale(.96); }
-  .knop svg { width: 13px; height: 13px; fill: currentColor; }
+  .knop:disabled { opacity: .35; cursor: default; }
+  .knop svg { width: 16px; height: 16px; display: block; }
+  .knop.woord svg { width: 13px; height: 13px; }
   .knop.rond { width: 34px; height: 34px; border-radius: 50%; }
   .knop.woord { height: 34px; border-radius: 17px; padding: 0 16px; gap: 7px; font: inherit; font-size: 14px; font-weight: 600; }
   /* Smaller dan een Mac-scherm (de iPad): kleinere randen en letters, zelfde boekje. */
@@ -114,13 +129,19 @@
     font-size: 13px; padding: 9px 16px; border-radius: 18px; opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 5; }
   #melding.aan { opacity: 1; }
   #leeg { padding: 40px var(--rand); color: var(--zacht); font-size: 14px; }
-  @media (max-width: 600px) { :root { --letter: 11px; } h1 { font-size: 20px; } .zone { margin-left: 0; } }
+  @media (max-width: 1100px) { .speler .nu { display: none; } }
+  @media (max-width: 600px) { :root { --letter: 11px; } h1 { font-size: 20px; } .zone, .speler { margin-left: 0; } }
 </style>
 </head>
 <body>
 <header>
-  <h1>Stacks</h1>
-  <span id="tel"></span>
+  <div class="naam"><h1>Stacks</h1><span id="tel"></span></div>
+  <div class="speler" hidden>
+    <span class="nu"></span>
+    <button class="knop rond klein" data-ctl="previous" title="Previous" aria-label="Previous"></button>
+    <button class="knop rond" data-ctl="playpause" title="Play" aria-label="Play"></button>
+    <button class="knop rond klein" data-ctl="next" title="Next" aria-label="Next"></button>
+  </div>
   <label class="zone">Play on <select id="zone" aria-label="Zone"></select></label>
   <div class="orde" role="group" aria-label="Order">
     <button data-orde="released" data-deep hidden>Release Date</button>
@@ -254,14 +275,19 @@ const melding = document.getElementById('melding');
 let meldTimer;
 function meld(t) { melding.textContent = t; melding.classList.add('aan'); clearTimeout(meldTimer); meldTimer = setTimeout(() => melding.classList.remove('aan'), 2600); }
 
+// De iconen, getekend in de geest van Basso's SF Symbols (play.fill, pause.fill, shuffle, text.insert, text.append,
+// backward.end.fill, forward.end.fill): lijnen van 1.7 met ronde kapjes op een raster van 20, play/pause/vorige/volgende gevuld.
+const LIJN = '<g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">';
 const ICOON = {
-  play: '<path d="M3 1.8v12.4c0 .7.8 1.1 1.4.7l9.6-6.2c.5-.3.5-1.1 0-1.4L4.4 1.1C3.8.7 3 1.1 3 1.8z"/>',
-  pause: '<rect x="3" y="1.5" width="3.6" height="13" rx="1"/><rect x="9.4" y="1.5" width="3.6" height="13" rx="1"/>',
-  shuffle: '<path d="M11.5 2.2V4H10c-1.6 0-2.6.9-3.5 2.1L5 8.2C4.3 9.2 3.7 10 2.6 10H1v1.8h1.6c1.9 0 2.9-1.2 3.8-2.5l1.5-2.1C8.6 6.3 9.1 5.8 10 5.8h1.5v1.8L15 4.9zM1 4h1.6c1 0 1.6.5 2.2 1.3l-1 1.5C3.3 6.2 3 5.8 2.6 5.8H1zm9 6.2c-.9 0-1.4-.5-2.1-1.4l1-1.5c.6.8 1 1.1 1.1 1.1h1.5V6.6L15 9.3l-3.5 2.7V10.2z"/>',
-  next: '<rect x="1" y="2" width="9" height="1.8" rx=".9"/><rect x="1" y="6" width="6" height="1.8" rx=".9"/><rect x="1" y="12.2" width="9" height="1.8" rx=".9"/><path d="M9.5 6.9v4.2l4.5-2.1z"/>',
-  later: '<rect x="1" y="2" width="9" height="1.8" rx=".9"/><rect x="1" y="6.1" width="9" height="1.8" rx=".9"/><rect x="1" y="10.2" width="6" height="1.8" rx=".9"/><path d="M11 9.6h1.6v-1.6h1.6v1.6h1.6v1.6h-1.6v1.6h-1.6v-1.6H11z"/>',
+  play: '<path fill="currentColor" d="M6 3.9v12.2c0 .9.9 1.4 1.7.9l9.3-6.1c.7-.4.7-1.4 0-1.8L7.7 3c-.8-.5-1.7 0-1.7.9z"/>',
+  pause: '<rect fill="currentColor" x="4.5" y="3" width="4" height="14" rx="1.2"/><rect fill="currentColor" x="11.5" y="3" width="4" height="14" rx="1.2"/>',
+  vorige: '<rect fill="currentColor" x="3" y="4" width="2.2" height="12" rx="1.1"/><path fill="currentColor" d="M17 5.1v9.8c0 .8-.9 1.3-1.6.8L7.6 11c-.6-.4-.6-1.4 0-1.8l7.8-4.9c.7-.5 1.6 0 1.6.8z"/>',
+  volgende: '<rect fill="currentColor" x="14.8" y="4" width="2.2" height="12" rx="1.1"/><path fill="currentColor" d="M3 5.1v9.8c0 .8.9 1.3 1.6.8l7.8-4.7c.6-.4.6-1.4 0-1.8L4.6 4.3C3.9 3.8 3 4.3 3 5.1z"/>',
+  shuffle: LIJN + '<path d="M2.5 6h2.6c1.8 0 2.9.9 4 2.6l1.8 2.8c1.1 1.7 2.2 2.6 4 2.6h2.6"/><path d="M2.5 14h2.6c1.2 0 2.1-.4 2.9-1.2"/><path d="M12.1 7.2c.8-.8 1.7-1.2 2.9-1.2h2.5"/><path d="M15.6 3.9 17.7 6l-2.1 2.1"/><path d="M15.6 11.9l2.1 2.1-2.1 2.1"/></g>',
+  next: LIJN + '<path d="M9 5h8.5"/><path d="M2.5 10h15"/><path d="M2.5 15h15"/></g><path fill="currentColor" d="M2.5 2.6v4.8c0 .5.5.8.9.5l3.4-2.4c.3-.2.3-.8 0-1L3.4 2.1c-.4-.3-.9 0-.9.5z"/>',
+  later: LIJN + '<path d="M2.5 5h15"/><path d="M2.5 10h15"/><path d="M2.5 15h7.5"/><path d="M14.5 12.2v5.6"/><path d="M11.7 15h5.6"/></g>',
 };
-const svg = n => `<svg viewBox="0 0 16 16" aria-hidden="true">${ICOON[n]}</svg>`;
+const svg = n => `<svg viewBox="0 0 20 20" aria-hidden="true">${ICOON[n]}</svg>`;
 
 // binnenKleur uit Stapel.swift: dezelfde tint, verzadiging ×1.1 (hooguit 0.75), helderheid 45% (tussen 0.20 en 0.30).
 function binnenKleur(hex) {
@@ -479,9 +505,33 @@ async function haalZones() {
   try { zonesNu = (await (await fetch('/api/zones', { cache: 'no-store' })).json()).zones; } catch { return; }
   if (!zoneNu() && zonesNu.length) zoneId = (zonesNu.find(z => z.state === 'playing') ?? zonesNu[0]).id;
   kiezer.replaceChildren(...zonesNu.map(z => new Option(z.name, z.id, false, z.id === zoneId)));
+  toonSpeler();
   // Play wordt Pause als dit album op de gekozen zone speelt.
   if (open) { const oud = open.links.querySelector('.knoppen'); oud.replaceWith(knoppenRij(open.album)); }
 }
+// De bediening bovenin: wat er speelt op de gekozen zone, en de knoppen ernaast.
+const speler = document.querySelector('.speler');
+for (const b of speler.querySelectorAll('button')) b.innerHTML = svg(b.dataset.ctl === 'previous' ? 'vorige' : b.dataset.ctl === 'next' ? 'volgende' : 'play');
+function toonSpeler() {
+  const z = zoneNu();
+  speler.hidden = !z;
+  if (!z) return;
+  const nu = speler.querySelector('.nu');
+  nu.replaceChildren();
+  if (z.now) {
+    const t = document.createElement('b'); t.textContent = z.now.title;
+    nu.append(t, document.createTextNode(z.now.artist ? `  ${z.now.artist}` : ''));
+    nu.title = [z.now.title, z.now.artist, z.now.album].filter(Boolean).join(' — ');
+  }
+  const speelt = z.state === 'playing', pp = speler.querySelector('[data-ctl="playpause"]');
+  pp.innerHTML = svg(speelt ? 'pause' : 'play'); pp.title = pp.ariaLabel = speelt ? 'Pause' : 'Play';
+  for (const b of speler.querySelectorAll('button')) b.disabled = !z.now;
+}
+speler.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || !zoneNu()) return;
+  post('/api/control', { zone: zoneId, control: b.dataset.ctl }).then(() => setTimeout(haalZones, 400)).catch(e => meld(e.message));
+});
+
 kiezer.addEventListener('change', () => { zoneId = kiezer.value; try { localStorage.setItem('stacks.zone', zoneId); } catch {} haalZones(); });
 haalZones(); setInterval(haalZones, 4000);
 
