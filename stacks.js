@@ -122,7 +122,16 @@ function toonStatus() {
     : `${albums.length} albums${open ? `, colouring ${open}` : ''} · open ${adres()}${deep.aan ? ' · with Deep Roon' : ''}`, false);
 }
 
-const vraag = (fn, opts) => new Promise((ok, mis) => fn.call(browse, opts, (err, r) => err ? mis(new Error(err)) : ok(r)));
+// Elk antwoord van Roon met een tijdslimiet (René, 26 okt: "kan geen album meer openklappen" — één verzoek waarop Roon
+// nooit antwoordde, hield de hele rij erachter vast). Na 10 s geeft hij op en zegt in de log wat er hing.
+function metLimiet(wat, maak, ms = 10000) {
+  return new Promise((ok, mis) => {
+    const t = setTimeout(() => { log('hangt:', wat); mis(new Error('Roon did not answer, try again')); }, ms);
+    maak(r => { clearTimeout(t); ok(r); }, e => { clearTimeout(t); mis(e); });
+  });
+}
+const vraag = (fn, opts) => metLimiet(`browse ${fn === browse.browse ? 'browse' : 'load'} ${JSON.stringify({ ...opts, zone_or_output_id: opts.zone_or_output_id ? 'zone' : undefined })}`,
+  (ok, mis) => fn.call(browse, opts, (err, r) => err ? mis(new Error(err)) : ok(r)));
 
 // De bibliotheek: Library › Albums, de hele lijst in pakjes van 100. De officiële API geeft per album titel, artiest
 // (subtitle) en image_key — geen speelduur, datums of catalogusnummer; die komen later uit Deep Roon.
@@ -152,7 +161,10 @@ setInterval(() => kern && laadAlbums(), 15 * 60 * 1000);
 // ---- één album: de tracks en de acties ----
 // Een eigen browse-sessie ('open'), één verzoek tegelijk: browse is een plek (een stapel niveaus), geen vraag-en-antwoord.
 let rij = Promise.resolve();
-function opRij(fn) { const p = rij.then(fn, fn); rij = p.catch(() => { }); return p; }
+function opRij(fn) {
+  const p = rij.then(() => metLimiet('rij', (ok, mis) => Promise.resolve().then(fn).then(ok, mis), 30000));
+  rij = p.catch(() => { }); return p;
+}
 
 async function naarAlbum(n, image, zone) {
   const opts = { hierarchy: 'albums', multi_session_key: 'open', ...(zone ? { zone_or_output_id: zone } : {}) };
@@ -191,7 +203,7 @@ async function speel({ n, image: img, zone, track, action }) {
     if (track === 0) return { ok: true };
     const item = await wachtOpWachtrij(zone, titel, lijst.length);
     if (!item) throw new Error('Playing from the start: the queue did not show the track');
-    await new Promise((ok, mis) => transport.play_from_here(zone, item.queue_item_id, m => m === 'Success' ? ok() : mis(new Error(String(m)))));
+    await metLimiet('play_from_here', (ok, mis) => transport.play_from_here(zone, item.queue_item_id, m => m === 'Success' ? ok() : mis(new Error(String(m)))));
     return { ok: true };
   }
   const schud = action === 'Shuffle';
@@ -205,7 +217,7 @@ async function speel({ n, image: img, zone, track, action }) {
   const gezocht = (schud ? 'Play Now' : action).toLowerCase();
   const actie = acties.find(i => i.title.toLowerCase() === gezocht);
   if (!actie) { log('geen actie', action, '— Roon biedt:', acties.map(i => i.title).join(', ')); throw new Error(`Roon offers no "${action}" here`); }
-  if (schud) await new Promise(ok => transport.change_settings(zone, { shuffle: true }, ok));
+  if (schud) await metLimiet('change_settings', ok => transport.change_settings(zone, { shuffle: true }, ok));
   const r = await vraag(browse.browse, { ...a.opts, item_key: actie.item_key });
   return { ok: true, message: r.message ?? null };
 }
