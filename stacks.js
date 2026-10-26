@@ -374,7 +374,7 @@ http.createServer(async (req, res) => {
       artist: i.three_line?.line2 ?? '', album: i.three_line?.line3 ?? '', image: i.image_key ?? null, len: i.length ?? null })) });
   }
   // De lessenaar: zoeken in de track, volume, shuffle/herhalen, een item uit de wachtrij spelen.
-  if (req.method === 'POST' && ['/api/seek', '/api/volume', '/api/settings', '/api/jump'].includes(url.pathname)) {
+  if (req.method === 'POST' && ['/api/seek', '/api/volume', '/api/mute', '/api/settings', '/api/jump'].includes(url.pathname)) {
     if (!transport) return stuur(res, 503, { error: 'Not connected to Roon' });
     const v = await lees(req), z = zones.get(v.zone);
     if (!z) return stuur(res, 400, { error: 'Choose a zone' });
@@ -386,6 +386,12 @@ http.createServer(async (req, res) => {
         if (!o?.volume || o.volume.type === 'incremental') return stuur(res, 409, { error: 'Roon cannot set this volume' });
         const w = Math.min(o.volume.max, Math.max(o.volume.min, Number(v.value)));
         return transport.change_volume(o.output_id, 'absolute', w, klaar);
+      }
+      // Het luidsprekertje (René, 26 okt: "kan het ook functioneel worden?"): geluid uit en weer aan.
+      if (url.pathname === '/api/mute') {
+        const o = z.outputs?.[0];
+        if (!o?.volume) return stuur(res, 409, { error: 'Roon cannot mute this zone' });
+        return transport.mute(o.output_id, o.volume.is_muted ? 'unmute' : 'mute', klaar);
       }
       if (url.pathname === '/api/settings') {
         const zet = {};
