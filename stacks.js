@@ -87,7 +87,7 @@ const status = new RoonApiStatus(roon);
 
 // ---- Deep Roon en de instellingen (in Roon › Settings › Extensions › Stacks) ----
 const deep = maakDeep({ bestand: path.join(DATA, 'deep.json'), log });
-let instellingen = { deep: process.env.DEEP_ROON ?? 'http://127.0.0.1:9301/mcp', catorde: 'catno', catrug: 'sorted' };
+let instellingen = { deep: process.env.DEEP_ROON ?? 'http://127.0.0.1:9301/mcp', catorde: 'catno', catrug: 'sorted', capsule: 'on' };
 instellingen = { ...instellingen, ...(roon.load_config('instellingen') ?? {}) };
 deep.zetAdres(instellingen.deep);
 // Korte regels: Roon breekt een label niet af (Solo, 11 okt).
@@ -105,6 +105,9 @@ function layout(v) {
     // Het nummer op de rug aan of uit (René, 26 okt): altijd, of alleen als de stapel erop gesorteerd is.
     { type: 'dropdown', title: 'Catalogue number on the spines', setting: 'catrug',
       values: [{ title: 'Only in Catalogue Number order', value: 'sorted' }, { title: 'Always', value: 'always' }] },
+    // De speelcapsule onderin als Now Playing dicht is: aan of uit (René, 26 okt: "de mini-player optioneel").
+    { type: 'dropdown', title: 'Mini player when Now Playing is hidden', setting: 'capsule',
+      values: [{ title: 'Show', value: 'on' }, { title: 'Hide', value: 'off' }] },
   ] };
 }
 const settings = new RoonApiSettings(roon, {
@@ -115,7 +118,7 @@ const settings = new RoonApiSettings(roon, {
     if (isDryRun || l.has_error) return;
     const ander = (l.values.deep ?? '') !== instellingen.deep;
     instellingen = { deep: (l.values.deep ?? '').trim(), catorde: l.values.catorde === 'barcode' ? 'barcode' : 'catno',
-                     catrug: l.values.catrug === 'always' ? 'always' : 'sorted' };
+                     catrug: l.values.catrug === 'always' ? 'always' : 'sorted', capsule: l.values.capsule === 'off' ? 'off' : 'on' };
     roon.save_config('instellingen', instellingen);
     if (ander) { deep.zetAdres(instellingen.deep); deep.ververs(veranderd); }
   },
@@ -327,7 +330,7 @@ http.createServer(async (req, res) => {
     });
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
     return res.end(JSON.stringify({
-      core: kern?.display_name ?? null, loading: laadt, deep: deep.aan, deepBusy: deep.bezig, catorde: instellingen.catorde, catrug: instellingen.catrug,
+      core: kern?.display_name ?? null, loading: laadt, deep: deep.aan, deepBusy: deep.bezig, catorde: instellingen.catorde, catrug: instellingen.catrug, capsule: instellingen.capsule,
       pending: albums.filter(a => a.image && !kleuren[a.image]).length, albums: rijen,
     }));
   }

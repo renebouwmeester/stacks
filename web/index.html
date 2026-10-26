@@ -117,7 +117,8 @@
   /* ---- De lessenaar (Basso, Lessenaar.swift): Now Playing rechts, 320 breed, als in/uitklapper (René, 26 okt) ----
      Het paneel schuift over de stapel; de stapel wordt pas smaller als het paneel er staat (bij dichtklappen meteen breed,
      onder het paneel dat wegschuift) — Basso: "het grid resizet met een flits". Ingeklapt: de speelcapsule onderin. */
-  :root { --paneel: 320px; }
+  /* 304 breed (René: "What's Next even smal, en de hele NP daarmee wat smaller"): alles op de breedte van de hoes, 256. */
+  :root { --paneel: 304px; }
   body { transition: none; }
   body.met-paneel { padding-right: calc(var(--paneel) + 1px); }
   .lessenaar { position: fixed; top: 0; right: 0; bottom: 0; width: var(--paneel); z-index: 4; display: flex; flex-direction: column;
@@ -173,7 +174,8 @@
   .volume input::-moz-range-thumb { width: 12px; height: 12px; border: 0; border-radius: 50%; background: #fff; }
   .volume span { width: 24px; text-align: right; font-size: 11px; font-variant-numeric: tabular-nums; }
   /* What's Next: onderin verankerd, precies zoveel rijen als er passen (thumbs 36, 14/12, tijden, haarlijntjes). */
-  .volgende { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: flex-end; padding: 16px 12px 6px; overflow: hidden; }
+  .volgende { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; padding: 16px 0 6px; overflow: hidden; }
+  .volgende .blok { width: 256px; }
   .volgende[hidden] { display: none; }
   .blok { background: rgba(255,255,255,.07); border-radius: 12px; padding: 10px 10px 4px; cursor: pointer; }
   .kopje { font-size: 12px; font-weight: 600; color: rgba(255,255,255,.55); padding: 0 2px 6px; }
@@ -185,22 +187,26 @@
   .rij b { font-size: 13.5px; font-weight: 500; color: rgba(255,255,255,.92); }
   .rij small { font-size: 12px; color: rgba(255,255,255,.55); margin-top: 1px; }
   .rij > span { font-size: 12px; color: rgba(255,255,255,.45); font-variant-numeric: tabular-nums; flex: 0 0 auto; }
-  .wachtrij { overflow-y: auto; padding: max(18px, env(safe-area-inset-top)) 12px 12px; }
+  .wachtrij { overflow-y: auto; padding: max(18px, env(safe-area-inset-top)) 18px 12px; }
   .wachtrij .rij { cursor: pointer; border-radius: 8px; padding: 5px 6px; }
   .wachtrij .rij:hover { background: rgba(255,255,255,.06); }
   .wachtrij .rij.nu { background: rgba(255,255,255,.1); }
   .wachtrij .rij.nu + .rij { border-top-color: transparent; }
   .wachtrij h2 { font-size: 12px; font-weight: 600; color: rgba(255,255,255,.55); margin: 0 4px 8px; }
-  .wissel { position: absolute; left: 12px; right: 12px; bottom: 10px; display: flex; gap: 3px; padding: 3px; border-radius: 10px; background: rgba(255,255,255,.08); }
+  .wissel { position: absolute; left: 24px; right: 24px; bottom: 10px; display: flex; gap: 3px; padding: 3px; border-radius: 10px; background: rgba(255,255,255,.08); }
   .wissel button { appearance: none; border: 0; background: none; flex: 1; height: 28px; border-radius: 8px; font: inherit; font-size: 12px;
     font-weight: 600; color: rgba(255,255,255,.6); cursor: pointer; }
   .wissel button[aria-pressed="true"] { background: rgba(255,255,255,.16); color: #fff; }
+  .wissel .dicht { display: none; }
+  @media (max-width: 900px) { .wissel .dicht { display: flex; } }
   .wissel .dicht { flex: 0 0 36px; color: rgba(255,255,255,.6); display: flex; align-items: center; justify-content: center; }
   .wissel .dicht svg { width: 15px; height: 15px; }
-  .paneelknop { appearance: none; border: 0; background: rgba(255,255,255,.08); color: var(--tekst); width: 32px; height: 28px; border-radius: 8px;
+  /* Vast rechtsboven in de kop (René), ook als de kop over twee regels gaat. */
+  header { padding-right: calc(var(--rand-r) + 44px); }
+  .paneelknop { position: absolute; right: var(--rand-r); top: calc(env(safe-area-inset-top) + 14px); appearance: none; border: 0; background: rgba(255,255,255,.08); color: var(--tekst); width: 32px; height: 28px; border-radius: 8px;
     cursor: pointer; display: flex; align-items: center; justify-content: center; }
   .paneelknop svg { width: 15px; height: 15px; }
-  .paneelknop[aria-pressed="true"] { display: none; }
+  .paneelknop[aria-pressed="true"] { background: rgba(255,255,255,.18); }
   /* De speelcapsule (SpeelCapsule): onderin het midden van de stapel als de lessenaar dicht is; een klik zet hem terug. */
   .capsule { position: fixed; bottom: calc(env(safe-area-inset-bottom) + 18px); left: 50%; z-index: 3; width: min(390px, calc(100vw - 32px)); height: 56px;
     transform: translate(-50%, 140%); transition: transform .38s cubic-bezier(.2,.9,.25,1); display: flex; align-items: center; gap: 11px; padding: 0 12px 0 10px;
@@ -291,7 +297,7 @@ function namen(s) {
   return n.length > 1 ? n.slice(0, -1).join(', ') + ' & ' + n.at(-1) : (n[0] ?? '');
 }
 
-let metDeep = false, deepBezig = false, catOrde = 'catno', catRug = 'sorted';
+let metDeep = false, deepBezig = false, catOrde = 'catno', catRug = 'sorted', capsuleAan = true;
 const opArtiest = (a, b) => vergelijk.compare(zonderLidwoord(a.artist), zonderLidwoord(b.artist)) || vergelijk.compare(a.title, b.title);
 const catSleutel = a => (catOrde === 'barcode' ? a.barcode : a.catno) || null;
 function gesorteerd() {
@@ -369,7 +375,7 @@ async function haal(eenmaal) {
   catch { leeg.hidden = false; leeg.textContent = 'Stacks is not reachable'; return setTimeout(haal, 5000); }
   const eerste = albums.length === 0, wasDeep = metDeep, wasAantal = albums.length, wasBezig = deepBezig;
   albums = d.albums; metDeep = !!d.deep; deepBezig = !!d.deepBusy;
-  const catWas = catOrde + catRug; catOrde = d.catorde ?? 'catno'; catRug = d.catrug ?? 'sorted';
+  const catWas = catOrde + catRug; catOrde = d.catorde ?? 'catno'; catRug = d.catrug ?? 'sorted'; capsuleAan = d.capsule !== 'off';
   for (const b of document.querySelectorAll('.orde [data-deep]')) b.hidden = !metDeep;
   // Valt Deep Roon weg, dan valt een volgorde van Deep Roon terug op By Artist.
   if (!metDeep && ['released', 'added', 'catno'].includes(orde)) orde = 'artist';
@@ -657,7 +663,7 @@ function zetLessenaar(open, bewaar = true) {
   toonLessenaar();
   if (open) haalWachtrij();
 }
-paneelKnop.addEventListener('click', () => zetLessenaar(true));
+paneelKnop.addEventListener('click', () => zetLessenaar(!lesOpen));
 les.querySelector('.wissel .dicht').addEventListener('click', () => zetLessenaar(false));
 cap.addEventListener('click', e => { if (!e.target.closest('button')) zetLessenaar(true); });
 
@@ -725,7 +731,7 @@ function toonLessenaar() {
     toonVolume();
   }
   // De capsule
-  cap.classList.toggle('aan', !lesOpen && !!nu);
+  cap.classList.toggle('aan', capsuleAan && !lesOpen && !!nu);
   zetBeeld(cap.querySelector('img'), hoesUrl(nu?.image, 120));
   cap.querySelector('b').textContent = nu?.title ?? ''; cap.querySelector('small').textContent = nu?.artist ?? '';
   cap.querySelector('[data-doe="playpause"]').innerHTML = svg(speelt ? 'pause' : 'play');
@@ -790,13 +796,19 @@ async function haalWachtrij() {
 }
 function rijEl(i, nu) {
   const r = document.createElement('div'); r.className = 'rij' + (nu ? ' nu' : '');
-  const img = new Image(); img.alt = ''; img.loading = 'lazy'; if (i.image) img.src = hoesUrl(i.image, 120);
+  const img = new Image(); img.alt = ''; img.decoding = 'sync'; if (i.image) img.src = hoesUrl(i.image, 120);
   const d = document.createElement('div'), b = document.createElement('b'), sm = document.createElement('small'), t = document.createElement('span');
   b.textContent = i.title; sm.textContent = i.artist; t.textContent = tijd(i.len);
   d.append(b, sm); r.append(img, d, t);
   return r;
 }
+// Alleen opnieuw opbouwen als de wachtrij, de ruimte of het gezicht verandert (René: "de hoesjes trillen bij het herladen"
+// — elke 3 s alles opnieuw, met nieuwe beeldjes).
+let wachtrijStempel = '';
 function toonWachtrij() {
+  const stempel = wachtrijNu.map(i => i.id).join(',') + '|' + les.querySelector('.volgende').clientHeight + '|' + lesGezicht;
+  if (stempel === wachtrijStempel) return;
+  wachtrijStempel = stempel;
   // What's Next: alles na wat nu speelt (Roon's wachtrij begint bij het huidige nummer).
   const blok = les.querySelector('.blok'), na = wachtrijNu.slice(1);
   blok.replaceChildren();
