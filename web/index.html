@@ -114,15 +114,14 @@
     .tracks { grid-auto-flow: row; }
     .info { padding-bottom: 14px; }
   }
-  /* ---- De lessenaar (Basso, Lessenaar.swift): Now Playing rechts, 320 breed, als in/uitklapper (René, 26 okt) ----
-     Het paneel schuift over de stapel; de stapel wordt pas smaller als het paneel er staat (bij dichtklappen meteen breed,
-     onder het paneel dat wegschuift) — Basso: "het grid resizet met een flits". Ingeklapt: de speelcapsule onderin. */
+  /* ---- De lessenaar (Basso, Lessenaar.swift): Now Playing rechts als in/uitklapper (René, 26 okt) ----
+     Een overlay die over de pagina glijdt (René: "dat lijkt logischer"): de stapel houdt zijn breedte. Het paneel begint
+     onder de kop, zodat de knop rechtsboven bereikbaar blijft. Ingeklapt: de speelcapsule onderin. */
   /* 304 breed (René: "What's Next even smal, en de hele NP daarmee wat smaller"): alles op de breedte van de hoes, 256. */
   :root { --paneel: 304px; }
   body { transition: none; }
-  body.met-paneel { padding-right: calc(var(--paneel) + 1px); }
-  .lessenaar { position: fixed; top: 0; right: 0; bottom: 0; width: var(--paneel); z-index: 4; display: flex; flex-direction: column;
-    background: #141416; border-left: 1px solid rgba(255,255,255,.08); overflow: hidden; color: #fff;
+  .lessenaar { position: fixed; top: var(--kop-h, 60px); right: 0; bottom: 0; width: var(--paneel); z-index: 4; display: flex; flex-direction: column;
+    background: #141416; border-left: 1px solid rgba(255,255,255,.08); overflow: hidden; color: #fff; box-shadow: -12px 0 40px rgba(0,0,0,.45);
     transform: translateX(100%); transition: transform .38s cubic-bezier(.2,.9,.25,1); }
   /* Eigen klassenaam: .open is het opengeklapte album (opacity 0 tot hij infadet) — daarmee bleef het paneel zwart. */
   .lessenaar.uitgeklapt { transform: none; }
@@ -133,7 +132,7 @@
   .doek::after { content: ''; position: absolute; inset: 0; background: rgba(0,0,0,.5); }
   .gezicht { position: absolute; inset: 0 0 48px 0; display: flex; flex-direction: column; transition: opacity .25s ease-out; }
   .gezicht.weg { opacity: 0; pointer-events: none; }
-  .np { display: flex; flex-direction: column; align-items: center; padding-top: max(32px, env(safe-area-inset-top)); }
+  .np { display: flex; flex-direction: column; align-items: center; padding-top: 24px; }
   .np-hoes { width: 256px; height: 256px; border-radius: 10px; object-fit: cover; box-shadow: 0 9px 36px rgba(0,0,0,.5);
     background: rgba(255,255,255,.06); }
   .klok { width: 256px; }
@@ -187,7 +186,7 @@
   .rij b { font-size: 13.5px; font-weight: 500; color: rgba(255,255,255,.92); }
   .rij small { font-size: 12px; color: rgba(255,255,255,.55); margin-top: 1px; }
   .rij > span { font-size: 12px; color: rgba(255,255,255,.45); font-variant-numeric: tabular-nums; flex: 0 0 auto; }
-  .wachtrij { overflow-y: auto; padding: max(18px, env(safe-area-inset-top)) 18px 12px; }
+  .wachtrij { overflow-y: auto; padding: 18px 18px 12px; }
   .wachtrij .rij { cursor: pointer; border-radius: 8px; padding: 5px 6px; }
   .wachtrij .rij:hover { background: rgba(255,255,255,.06); }
   .wachtrij .rij.nu { background: rgba(255,255,255,.1); }
@@ -218,8 +217,6 @@
   .capsule button svg { width: 17px; height: 17px; }
   .capsule button + button svg { width: 15px; height: 15px; opacity: .85; }
   /* Smal (iPad staand, telefoon): het paneel zweeft over de stapel, zoals op Harry. */
-  /* Smal zweeft het paneel onder de kop, zodat de knop rechtsboven (het enige open/dicht) bereikbaar blijft. */
-  @media (max-width: 900px) { body.met-paneel { padding-right: 0; } .lessenaar { top: var(--kop-h, 60px); box-shadow: -10px 0 40px rgba(0,0,0,.5); } }
   @media (max-width: 600px) { :root { --paneel: 100vw; } }
   #melding { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 20px); transform: translateX(-50%);
     background: rgba(40,40,46,.92); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); color: var(--tekst);
@@ -658,19 +655,17 @@ kiezer.addEventListener('change', () => { zoneId = kiezer.value; try { localStor
 const les = document.getElementById('lessenaar'), cap = document.getElementById('capsule'), paneelKnop = document.getElementById('paneelKnop');
 paneelKnop.innerHTML = svg('paneel');
 les.querySelector('.volume .luid').innerHTML = svg('luid');
-let lesOpen = window.innerWidth > 900, lesWacht = null, lesGezicht = 'np', wachtrijNu = [], seekBasis = null;
+let lesOpen = window.innerWidth > 900, lesGezicht = 'np', wachtrijNu = [], seekBasis = null;
 try { const v = localStorage.getItem('stacks.lessenaar'); if (v) lesOpen = v === 'open'; } catch {}
 
-// Openen: het paneel schuift over de stapel, en pas als het er (bijna) staat wordt de stapel smaller — één wissel.
-// Dichtklappen: de stapel meteen breed, onder het paneel dat wegschuift.
+// Openen en dichtklappen: het paneel glijdt over de pagina; de stapel blijft zoals hij is.
+const kopHoogte = () => document.documentElement.style.setProperty('--kop-h', document.querySelector('header').offsetHeight + 'px');
+new ResizeObserver(kopHoogte).observe(document.querySelector('header'));
 function zetLessenaar(open, bewaar = true) {
-  document.documentElement.style.setProperty('--kop-h', document.querySelector('header').offsetHeight + 'px');
+  kopHoogte();
   lesOpen = open;
-  clearTimeout(lesWacht);
   les.classList.toggle('uitgeklapt', open);
   paneelKnop.setAttribute('aria-pressed', open);
-  if (open) lesWacht = setTimeout(() => document.body.classList.add('met-paneel'), 240);
-  else document.body.classList.remove('met-paneel');
   if (bewaar) try { localStorage.setItem('stacks.lessenaar', open ? 'open' : 'dicht'); } catch {}
   toonLessenaar();
   if (open) haalWachtrij();

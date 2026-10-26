@@ -17,8 +17,9 @@ Bovenaan wat eerst moet; afgevinkt gaat naar het logboek in README.md.
 - [ ] Docker-image (amd64 + arm64; puur JS, geen native onderdelen), `data/` als volume; daarnaast `npx stacks-for-roon`.
 - [ ] Grote bibliotheken: zichtbare voortgang bij de eerste keer (kleuren ~9 hoezen/s, Deep Roon ~14 albums/s); nagaan
       of 25.000 ruggen soepel scrollen (content-visibility, niet gemeten).
-- [ ] Deep Roon als optie uitleggen: Deep Roon MCP in HTTP-modus ernaast (DEEP_ROON_HTTP), of een docker-compose met
-      beide; zonder Deep Roon geen Catalog #, speelduur, credits.
+- [x] ~~Deep Roon als losse server ernaast~~ — opgelost door de kopie (`lib/intern.js`, 26 okt): één installatie.
+- [ ] "Richer data" standaard aan of uit bij een release? (René, samen met het gesprek met Roon Labs.)
+- [ ] Na elke Roon-update: deep-roon-mcp bijwerken en `node intern/kopieer-intern.mjs` opnieuw.
 - [ ] Zeggen dat iedereen op het netwerk kan afspelen (geen login), zoals bij Roon Web Controller.
 - [ ] René: Deep Roon in een openbare extensie eerst met Roon Labs (Brian) bespreken.
 - [ ] Volgorde: release-klaar → repo openbaar + Docker + bèta met de forumvragers → post in Roon Extensions → Extension

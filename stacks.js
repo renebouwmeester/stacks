@@ -2,7 +2,8 @@
 // serveert; de pagina toont de albums als liggende ruggen in de kleuren van de hoes. Stap 2: alleen de officiële API —
 // de albumlijst (browse), de hoezen (image) en daaruit de rugkleuren (lib/kleur.js), bewaard per image_key.
 // Stap 3: een rug klapt open (hoes, tracks, knoppen) en speelt op een Roon-zone (browse-acties en transport).
-// Nog niet: Deep Roon met speelduur, datums en catalogusnummer (stap 4).
+// Stap 4: de rijkere laag (speelduur, datums, catalogusnummer, credits) uit Roon's interne protocol — de twee functies
+// gekopieerd uit Deep Roon (lib/intern.js); uit te zetten in Roon's instellingen.
 //
 // Gebruik: node stacks.js   (poort 9360, of PORT=…; gegevens in ./data, of STACKS_DATA=…)
 const RoonApi = require('node-roon-api');
@@ -66,6 +67,7 @@ const roon = new RoonApi({
   core_paired(core) {
     kern = core; browse = core.services.RoonApiBrowse; image = core.services.RoonApiImage; transport = core.services.RoonApiTransport;
     log('gekoppeld aan', core.display_name);
+    deep.zetGekoppeld(true);
     transport.subscribe_zones((cmd, data) => {
       if (cmd === 'Subscribed') { zones.clear(); wachtrijen.clear(); for (const z of data.zones ?? []) { zones.set(z.zone_id, z); volgWachtrij(z.zone_id); } }
       else if (cmd === 'Changed') {
@@ -80,6 +82,7 @@ const roon = new RoonApi({
   core_unpaired(core) {
     kern = null; browse = null; image = null; transport = null; zones.clear(); wachtrijen.clear();
     log('ontkoppeld van', core.display_name);
+    deep.zetGekoppeld(false);
     toonStatus();
   },
 });
@@ -87,17 +90,19 @@ const status = new RoonApiStatus(roon);
 
 // ---- Deep Roon en de instellingen (in Roon › Settings › Extensions › Stacks) ----
 const deep = maakDeep({ bestand: path.join(DATA, 'deep.json'), log });
-let instellingen = { deep: process.env.DEEP_ROON ?? 'http://127.0.0.1:9301/mcp', catorde: 'catno', catrug: 'sorted', capsule: 'on' };
+let instellingen = { deep: 'on', catorde: 'catno', catrug: 'sorted', capsule: 'on' };
 instellingen = { ...instellingen, ...(roon.load_config('instellingen') ?? {}) };
-deep.zetAdres(instellingen.deep);
+// Van vóór de kopie (26 okt): toen was 'deep' het adres van een Deep Roon MCP — ingevuld telt als aan, leeg als uit.
+if (!['on', 'off'].includes(instellingen.deep)) instellingen.deep = instellingen.deep ? 'on' : 'off';
+deep.zetAan(instellingen.deep === 'on');
 // Korte regels: Roon breekt een label niet af (Solo, 11 okt).
 function layout(v) {
   return { values: v, has_error: false, layout: [
-    { type: 'group', title: 'Deep Roon (optional)', items: [
-      { type: 'label', title: 'Track times, credits, dates and catalogue numbers' },
-      { type: 'label', title: 'come from Deep Roon MCP, if it runs on your network' },
+    { type: 'group', title: 'Richer data (optional)', items: [
+      { type: 'label', title: 'Play times, credits, dates and catalog numbers' },
+      { type: 'label', title: 'come from Roon\'s internal protocol, as Deep Roon reads it' },
       { type: 'label', title: 'It is unofficial and can break with a Roon update' },
-      { type: 'string', title: 'Deep Roon address (empty is off)', setting: 'deep', maxlength: 200 },
+      { type: 'dropdown', title: 'Richer data', setting: 'deep', values: [{ title: 'On', value: 'on' }, { title: 'Off', value: 'off' }] },
       { type: 'label', title: deep.stand },
     ] },
     { type: 'dropdown', title: 'Catalog # order uses', setting: 'catorde',
@@ -116,11 +121,11 @@ const settings = new RoonApiSettings(roon, {
     const l = layout(s.values);
     req.send_complete(l.has_error ? 'NotValid' : 'Success', { settings: l });
     if (isDryRun || l.has_error) return;
-    const ander = (l.values.deep ?? '') !== instellingen.deep;
-    instellingen = { deep: (l.values.deep ?? '').trim(), catorde: l.values.catorde === 'barcode' ? 'barcode' : 'catno',
+    const ander = (l.values.deep === 'off' ? 'off' : 'on') !== instellingen.deep;
+    instellingen = { deep: l.values.deep === 'off' ? 'off' : 'on', catorde: l.values.catorde === 'barcode' ? 'barcode' : 'catno',
                      catrug: l.values.catrug === 'always' ? 'always' : 'sorted', capsule: l.values.capsule === 'off' ? 'off' : 'on' };
     roon.save_config('instellingen', instellingen);
-    if (ander) { deep.zetAdres(instellingen.deep); deep.ververs(veranderd); }
+    if (ander) { deep.zetAan(instellingen.deep === 'on'); deep.ververs(veranderd); }
   },
 });
 function veranderd() { toonStatus(); settings.update_settings(layout(instellingen)); }
@@ -137,7 +142,7 @@ function toonStatus() {
   if (!kern) return status.set_status('Waiting for a Roon Core', false);
   const open = albums.filter(a => a.image && !kleuren[a.image]).length;
   status.set_status(laadt ? 'Reading the library…'
-    : `${albums.length} albums${open ? `, colouring ${open}` : ''} · open ${adres()}${deep.aan ? ' · with Deep Roon' : ''}`, false);
+    : `${albums.length} albums${open ? `, colouring ${open}` : ''} · open ${adres()}${deep.aan ? ' · richer data on' : ''}`, false);
 }
 
 // Elk antwoord van Roon met een tijdslimiet (René, 26 okt: "kan geen album meer openklappen" — één verzoek waarop Roon
@@ -414,3 +419,6 @@ http.createServer(async (req, res) => {
     res.end(d);
   });
 }).listen(POORT, () => { log('Stacks op', adres()); toonStatus(); });
+
+// Netjes stoppen: de verbinding van het interne protocol met de Core dicht (Roon Labs' wens: niets laten hangen).
+for (const sig of ['SIGTERM', 'SIGINT']) process.on(sig, () => { try { require('./lib/intern').shutdown(); } catch { } process.exit(0); });
