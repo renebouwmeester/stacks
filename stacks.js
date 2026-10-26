@@ -72,7 +72,7 @@ const status = new RoonApiStatus(roon);
 
 // ---- Deep Roon en de instellingen (in Roon › Settings › Extensions › Stacks) ----
 const deep = maakDeep({ bestand: path.join(DATA, 'deep.json'), log });
-let instellingen = { deep: process.env.DEEP_ROON ?? 'http://127.0.0.1:9301/mcp', catorde: 'catno' };
+let instellingen = { deep: process.env.DEEP_ROON ?? 'http://127.0.0.1:9301/mcp', catorde: 'catno', catrug: 'sorted' };
 instellingen = { ...instellingen, ...(roon.load_config('instellingen') ?? {}) };
 deep.zetAdres(instellingen.deep);
 // Korte regels: Roon breekt een label niet af (Solo, 11 okt).
@@ -87,6 +87,9 @@ function layout(v) {
     ] },
     { type: 'dropdown', title: 'Catalogue Number order uses', setting: 'catorde',
       values: [{ title: 'Catalogue number', value: 'catno' }, { title: 'Barcode', value: 'barcode' }] },
+    // Het nummer op de rug aan of uit (René, 26 okt): altijd, of alleen als de stapel erop gesorteerd is.
+    { type: 'dropdown', title: 'Catalogue number on the spines', setting: 'catrug',
+      values: [{ title: 'Only in Catalogue Number order', value: 'sorted' }, { title: 'Always', value: 'always' }] },
   ] };
 }
 const settings = new RoonApiSettings(roon, {
@@ -96,7 +99,8 @@ const settings = new RoonApiSettings(roon, {
     req.send_complete(l.has_error ? 'NotValid' : 'Success', { settings: l });
     if (isDryRun || l.has_error) return;
     const ander = (l.values.deep ?? '') !== instellingen.deep;
-    instellingen = { deep: (l.values.deep ?? '').trim(), catorde: l.values.catorde === 'barcode' ? 'barcode' : 'catno' };
+    instellingen = { deep: (l.values.deep ?? '').trim(), catorde: l.values.catorde === 'barcode' ? 'barcode' : 'catno',
+                     catrug: l.values.catrug === 'always' ? 'always' : 'sorted' };
     roon.save_config('instellingen', instellingen);
     if (ander) { deep.zetAdres(instellingen.deep); deep.ververs(veranderd); }
   },
@@ -293,7 +297,7 @@ http.createServer(async (req, res) => {
     });
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
     return res.end(JSON.stringify({
-      core: kern?.display_name ?? null, loading: laadt, deep: deep.aan, deepBusy: deep.bezig, catorde: instellingen.catorde,
+      core: kern?.display_name ?? null, loading: laadt, deep: deep.aan, deepBusy: deep.bezig, catorde: instellingen.catorde, catrug: instellingen.catrug,
       pending: albums.filter(a => a.image && !kleuren[a.image]).length, albums: rijen,
     }));
   }

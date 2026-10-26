@@ -42,13 +42,16 @@
   /* Met Deep Roon (StapelRug): rechts de speelduur, op een breed scherm het schildje met bitdiepte/samplerate (24/96), en bij de volgorde op
      catalogusnummer dat nummer in een eigen rechterkolom (variant D uit de tekenbank). */
   .rug i { flex: 1 0 8px; }
-  .rug em { font-style: normal; font-size: 8px; font-weight: 600; letter-spacing: .6px; font-variant-numeric: tabular-nums; color: var(--t2, #fff); opacity: .85;
+  .rug em { flex: 0 0 auto; width: 52px; text-align: center; font-style: normal; font-size: 8px; font-weight: 600; letter-spacing: .6px; font-variant-numeric: tabular-nums; color: var(--t2, #fff); opacity: .85;
     padding: 1px 3px; border: .75px solid color-mix(in srgb, var(--t2, #fff) 55%, transparent); border-radius: 3px; }
   .rug small { font-size: 11px; color: var(--t2, #fff); opacity: .8; font-variant-numeric: tabular-nums; flex: 0 0 auto; }
+  /* Schildje en speelduur elk in een eigen rechte kolom (variant D): de duur rechts uitgelijnd op een vaste breedte. */
+  .rug em + small { width: 76px; text-align: right; }
+  .rug em.leeg { visibility: hidden; }
   .rug small + small { font-size: 10px; font-weight: 500; letter-spacing: .4px; opacity: .7; width: 110px; text-align: right;
     overflow: hidden; text-overflow: ellipsis; }
   .rug small.stil { opacity: .45; }
-  @media (max-width: 1000px) { .rug em { display: none; } }
+  @media (max-width: 700px) { .rug em { display: none; } .rug em + small { width: auto; } }
   @media (max-width: 600px) { .rug small + small { width: auto; max-width: 90px; } }
   .orde { overflow-x: auto; scrollbar-width: none; max-width: 100%; }
   .orde::-webkit-scrollbar { display: none; }
@@ -148,7 +151,7 @@ function namen(s) {
   return n.length > 1 ? n.slice(0, -1).join(', ') + ' & ' + n.at(-1) : (n[0] ?? '');
 }
 
-let metDeep = false, deepBezig = false, catOrde = 'catno';
+let metDeep = false, deepBezig = false, catOrde = 'catno', catRug = 'sorted';
 const opArtiest = (a, b) => vergelijk.compare(zonderLidwoord(a.artist), zonderLidwoord(b.artist)) || vergelijk.compare(a.title, b.title);
 const catSleutel = a => (catOrde === 'barcode' ? a.barcode : a.catno) || null;
 function gesorteerd() {
@@ -189,12 +192,15 @@ function vul(el, a) {
   el.children[0].textContent = eerst; el.children[1].textContent = dan;
   el.title = `${namen(a.artist)} — ${a.title}`;
   const h = dikte(a); if (h) el.style.setProperty('--h', h + 'px'); else el.style.removeProperty('--h');
-  el.children[3].textContent = a.fmt ?? ''; el.children[3].hidden = !a.fmt;
+  // Het schildje: met Deep Roon op elke rug een vak in de kolom, leeg (onzichtbaar) als Roon het formaat niet weet.
+  el.children[3].textContent = a.fmt ?? ''; el.children[3].hidden = !metDeep; el.children[3].classList.toggle('leeg', !a.fmt);
   el.children[4].textContent = duurTekst(a.len); el.children[4].hidden = !a.len;
-  // Op catalogusnummer: het nummer rechts; zonder nummer de barcode, stiller (René, 26 okt).
-  el.children[5].textContent = orde === 'catno' ? (catSleutel(a) ?? a.barcode ?? '') : '';
-  el.children[5].hidden = orde !== 'catno';
-  el.children[5].classList.toggle('stil', orde === 'catno' && !catSleutel(a));
+  // Het nummer rechts in een eigen kolom: bij de volgorde Catalogue Number (zonder nummer de barcode, stiller), of altijd
+  // als dat in Roon zo is ingesteld (dan alleen waar het er is).
+  const opNummer = orde === 'catno', toon = opNummer || catRug === 'always';
+  el.children[5].textContent = toon ? (catSleutel(a) ?? (opNummer ? a.barcode : null) ?? '') : '';
+  el.children[5].hidden = !toon || !metDeep;
+  el.children[5].classList.toggle('stil', opNummer && !catSleutel(a));
   kleur(el, a); albumVan.set(el, a);
 }
 
@@ -222,7 +228,7 @@ async function haal(eenmaal) {
   catch { leeg.hidden = false; leeg.textContent = 'Stacks is not reachable'; return setTimeout(haal, 5000); }
   const eerste = albums.length === 0, wasDeep = metDeep, wasAantal = albums.length, wasBezig = deepBezig;
   albums = d.albums; metDeep = !!d.deep; deepBezig = !!d.deepBusy;
-  const catWas = catOrde; catOrde = d.catorde ?? 'catno';
+  const catWas = catOrde + catRug; catOrde = d.catorde ?? 'catno'; catRug = d.catrug ?? 'sorted';
   for (const b of document.querySelectorAll('.orde [data-deep]')) b.hidden = !metDeep;
   // Valt Deep Roon weg, dan valt een volgorde van Deep Roon terug op By Artist.
   if (!metDeep && ['released', 'added', 'catno'].includes(orde)) orde = 'artist';
@@ -233,7 +239,7 @@ async function haal(eenmaal) {
   // Opnieuw ordenen alleen als de stapel echt anders is (eerste lading, albums erbij of eraf, Deep Roon komt of gaat of is
   // klaar met lezen, een andere catalogussleutel); anders de ruggen ter plekke bijwerken, zodat de stapel niet onder je
   // vingers verschuift terwijl de gegevens binnenkomen.
-  if (eerste || albums.length !== wasAantal || metDeep !== wasDeep || (wasBezig && !deepBezig) || catOrde !== catWas) teken();
+  if (eerste || albums.length !== wasAantal || metDeep !== wasDeep || (wasBezig && !deepBezig) || catOrde + catRug !== catWas) teken();
   else for (const a of albums) { const el = ruggen.get(sleutel(a)); if (el) vul(el, a); }
   if (!eenmaal && (!d.core || d.loading || d.pending || d.deepBusy)) setTimeout(haal, d.pending || d.deepBusy ? 3000 : 2000);
   else if (!eenmaal) setTimeout(haal, 60000);   // rustig bijhouden: nieuwe albums, Deep Roon die opkomt of wegvalt
