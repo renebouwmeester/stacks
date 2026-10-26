@@ -115,6 +115,8 @@
   .info { font-size: calc(11px * var(--f)); color: rgba(255,255,255,.45); padding-bottom: 24px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .knoppen { display: flex; align-items: center; gap: 9px; }
   .knoppen .vul { flex: 1; }
+  /* Een klik landt altijd op de knop, nooit op het icoon erin. */
+  button svg { pointer-events: none; }
   .knop { appearance: none; border: 0; color: #fff; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
     background: rgba(255,255,255,.13); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
     box-shadow: inset 0 0 0 .5px rgba(255,255,255,.12); transition: background .15s; }
@@ -489,6 +491,9 @@ const ICOON = {
   later: LIJN + '<path d="M2.5 5h15"/><path d="M2.5 10h15"/><path d="M2.5 15h7.5"/><path d="M14.5 12.2v5.6"/><path d="M11.7 15h5.6"/></g>',
 };
 const svg = n => `<svg viewBox="0 0 20 20" aria-hidden="true">${ICOON[n]}</svg>`;
+// Een icoon alleen vervangen als het echt verandert (René: "shuffle doet het niet"): de lessenaar ververst elke 2 s, en een
+// icoon dat tussen indrukken en loslaten werd vervangen, kostte in Safari de klik.
+function zetIcoon(knop, naam) { if (knop.dataset.icoon !== naam) { knop.dataset.icoon = naam; knop.innerHTML = svg(naam); } }
 
 // binnenKleur uit Stapel.swift: dezelfde tint, verzadiging ×1.1 (hooguit 0.75), helderheid 45% (tussen 0.20 en 0.30).
 function binnenKleur(hex) {
@@ -524,7 +529,7 @@ async function speel(a, action, track) {
 
 function knoppenRij(a) {
   const rij = document.createElement('div'); rij.className = 'knoppen';
-  const speelt = speeltDit(a);
+  const speelt = speeltDit(a); rij.dataset.speelt = String(speelt);
   rij.innerHTML = `<button class="knop woord" data-doe="play">${svg(speelt ? 'pause' : 'play')}${speelt ? 'Pause' : 'Play'}</button><span class="vul"></span>
     <button class="knop rond" data-doe="Shuffle" title="Shuffle" aria-label="Shuffle">${svg('shuffle')}</button>
     <button class="knop rond" data-doe="Add Next" title="Play Next" aria-label="Play Next">${svg('next')}</button>
@@ -743,7 +748,8 @@ async function haalZones() {
   kiezer.replaceChildren(...zonesNu.map(z => new Option(z.name, z.id, false, z.id === zoneId)));
   toonLessenaar();
   // Play wordt Pause als dit album op de gekozen zone speelt.
-  if (open) { const oud = open.links.querySelector('.knoppen'); oud.replaceWith(knoppenRij(open.album)); }
+  // Alleen als Play echt Pause moet worden (of terug): elke 2 s een nieuwe rij kostte klikken.
+  if (open) { const oud = open.links.querySelector('.knoppen'), nu = String(speeltDit(open.album)); if (oud.dataset.speelt !== nu) oud.replaceWith(knoppenRij(open.album)); }
 }
 kiezer.addEventListener('change', () => { zoneId = kiezer.value; try { localStorage.setItem('stacks.zone', zoneId); } catch {} haalZones(); haalWachtrij(); });
 
@@ -821,12 +827,12 @@ function toonLessenaar() {
   toonKlok();
   // Knoppen
   const t = les.querySelector('.transport');
-  t.querySelector('[data-doe="shuffle"]').innerHTML = svg('shuffle');
+  zetIcoon(t.querySelector('[data-doe="shuffle"]'), 'shuffle');
   t.querySelector('[data-doe="shuffle"]').classList.toggle('aan', !!z?.shuffle);
-  t.querySelector('[data-doe="previous"]').innerHTML = svg('terug');
-  t.querySelector('[data-doe="next"]').innerHTML = svg('vooruit');
-  const pp = t.querySelector('[data-doe="playpause"]'); pp.innerHTML = svg(speelt ? 'pause' : 'play'); pp.title = speelt ? 'Pause' : 'Play';
-  const rep = t.querySelector('[data-doe="repeat"]'); rep.innerHTML = svg(z?.loop === 'loop_one' ? 'herhaal1' : 'herhaal');
+  zetIcoon(t.querySelector('[data-doe="previous"]'), 'terug');
+  zetIcoon(t.querySelector('[data-doe="next"]'), 'vooruit');
+  const pp = t.querySelector('[data-doe="playpause"]'); zetIcoon(pp, speelt ? 'pause' : 'play'); pp.title = speelt ? 'Pause' : 'Play';
+  const rep = t.querySelector('[data-doe="repeat"]'); zetIcoon(rep, z?.loop === 'loop_one' ? 'herhaal1' : 'herhaal');
   rep.classList.toggle('aan', !!z && z.loop !== 'disabled');
   for (const b of t.querySelectorAll('button')) b.disabled = !z || (!nu && b.dataset.doe !== 'shuffle' && b.dataset.doe !== 'repeat');
   if (z && nu) { t.querySelector('[data-doe="previous"]').disabled = !z.kan.prev; t.querySelector('[data-doe="next"]').disabled = !z.kan.next; }
@@ -844,8 +850,8 @@ function toonLessenaar() {
   cap.classList.toggle('aan', capsuleAan && !lesOpen && !!nu);
   zetBeeld(cap.querySelector('img'), hoesUrl(nu?.image, 120));
   cap.querySelector('b').textContent = nu?.title ?? ''; cap.querySelector('small').textContent = nu?.artist ?? '';
-  cap.querySelector('[data-doe="playpause"]').innerHTML = svg(speelt ? 'pause' : 'play');
-  cap.querySelector('[data-doe="next"]').innerHTML = svg('vooruit');
+  zetIcoon(cap.querySelector('[data-doe="playpause"]'), speelt ? 'pause' : 'play');
+  zetIcoon(cap.querySelector('[data-doe="next"]'), 'vooruit');
 }
 function toonVolume() {
   const inp = les.querySelector('.volume input'), min = Number(inp.min), max = Number(inp.max), v = Number(inp.value);

@@ -260,8 +260,19 @@ async function zoekInWachtrij(zone, titel, aantal, oud = new Set()) {
   }
   return null;
 }
-function springNaar(zone, item) {
-  return metLimiet('play_from_here', (ok, mis) => transport.play_from_here(zone, item, m => m === 'Success' ? ok() : mis(new Error(String(m)))));
+// Naar een item in de wachtrij springen. Roon antwoordt op play_from_here niet altijd (log 26 okt, 18:56 en 20:28: tien
+// seconden stilte, ook met een open abonnement) — dus niet op het antwoord wachten, maar kijken wat er gebeurt: staat het
+// item binnen 4 s vooraan in de wachtrij (Roon's wachtrij begint bij wat speelt), dan is het gelukt.
+async function springNaar(zone, item) {
+  let antwoord = null;
+  transport.play_from_here(zone, item, m => { antwoord = m?.name ?? m; log('play_from_here: antwoord', antwoord); });
+  for (let i = 0; i < 40; i++) {
+    await new Promise(ok => setTimeout(ok, 100));
+    if (wachtrijen.get(zone)?.items?.[0]?.queue_item_id === item) return;
+    if (antwoord && antwoord !== 'Success') throw new Error(String(antwoord));
+  }
+  log('play_from_here: na 4 s niet vooraan in de wachtrij, antwoord', antwoord ?? 'geen');
+  if (antwoord !== 'Success') throw new Error('Roon did not jump to that track');
 }
 
 // De zones voor de kiezer en de knoppen: naam, stand en wat er speelt (om Play in Pause te veranderen bij dit album).

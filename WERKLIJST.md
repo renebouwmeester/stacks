@@ -3,11 +3,11 @@
 Bovenaan wat eerst moet; afgevinkt gaat naar het logboek in README.md.
 
 ## Deep Roon zuiniger (René, 26 okt 2026)
-- [ ] **Niet elk kwartier de hele bibliotheek.** Nu leest `deep.ververs` bij elke lading van de officiële lijst (start + elke
+- [x] **Niet elk kwartier de hele bibliotheek.** (26 okt: eerst één pagina; totaal en nieuwste gelijk → klaar.) Nu leest `deep.ververs` bij elke lading van de officiële lijst (start + elke
       15 min) heel `roon_library sort=added` opnieuw: 19 verzoeken bij 1858 albums, 250 bij 25.000 — ook als er niets
       veranderde. Alleen opnieuw lezen als het aantal albums (of de officiële lijst) veranderde; anders hooguit de eerste
       pagina (nieuwste toevoegingen).
-- [ ] **Bewaarde albums af en toe verversen.** `roon_album` per album wordt nu één keer gelezen en voorgoed bewaard
+- [x] **Bewaarde albums af en toe verversen.** (26 okt: per dag een dertigste, langst niet gelezen eerst, hooguit eens per week.) `roon_album` per album wordt nu één keer gelezen en voorgoed bewaard
       (`data/deep.json`); voegt Roon later een catalogusnummer of releasedatum toe, dan ziet Stacks dat nooit. Elke dag
       een kleine portie van de oudste bewaarde albums opnieuw lezen (met een datum per album in de cache).
 
@@ -27,7 +27,7 @@ Bovenaan wat eerst moet; afgevinkt gaat naar het logboek in README.md.
 
 ## Omwegen die bij anderen anders kunnen uitvallen
 - Play From Here: album Play Now, dan `play_from_here` naar de track in de wachtrij (Roon biedt het bij albumtracks niet
-  aan); track 1 klinkt even.
+  aan); track 1 klinkt even. Roon antwoordt op `play_from_here` niet (log 26 okt): Stacks kijkt of het item vooraan staat.
 - Shuffle: shuffle aan op de zone + Play Now; de zone blijft daarna op shuffle staan.
 - Albums terugvinden op hun plek `n` in Roon's lijst, met de image_key als controle.
 - Koppelen aan Deep Roon op titel + artiest (eerst letterlijk).
