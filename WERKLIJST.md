@@ -15,16 +15,17 @@ Bovenaan wat eerst moet; afgevinkt gaat naar het logboek in NOTITIES.md (README.
 - [x] Engelse README, licentie Apache-2.0 + NOTICE, versie 0.1.0 (28 okt).
 - [ ] Schermafbeeldingen in de README; een icoon voor de extensie.
 - [x] Docker-image (amd64 + arm64), `/data` als volume, `ROON_CORE` — gebouwd en getest in Docker Desktop op Dylan (28 okt).
-- [ ] Naar Docker Hub (`docker/bouw.sh push`, René's account) — bij de bèta. Daarnaast `npx stacks-for-roon`.
+- [x] Op Docker Hub, OPENBAAR: `renebouwmeester/stacks` 0.1.0 + latest, amd64 + arm64 (29 okt).
+- [ ] `npx stacks-for-roon` (npm).
 - [ ] Grote bibliotheken: zichtbare voortgang bij de eerste keer (kleuren ~9 hoezen/s, Deep Roon ~14 albums/s); nagaan
       of 25.000 ruggen soepel scrollen (content-visibility, niet gemeten).
 - [x] ~~Deep Roon als losse server ernaast~~ — opgelost door de kopie (`lib/intern.js`, 26 okt): één installatie.
 - [x] "Richer data" staat bij een nieuwe installatie AAN (René, 29 okt: "minimaal readonly werk, raakt aan de core
       promise"; 28 okt nog uit); een opgeslagen keuze blijft.
-- [ ] Docker Hub: OPENBAAR (René, 29 okt) — `docker/bouw.sh push` via een Terminal-venster op Dylan.
 - [ ] Na elke Roon-update: deep-roon-mcp bijwerken en `node intern/kopieer-intern.mjs` opnieuw.
 - [x] Zeggen dat iedereen op het netwerk kan afspelen (geen login) — staat in de README.
 - [ ] René: Deep Roon in een openbare extensie eerst met Roon Labs (Brian) bespreken.
+- [ ] De GitHub-repo openbaar? (de README verwijst naar `git clone`, maar renebouwmeester/stacks is nog privé)
 - [ ] Volgorde: release-klaar → repo openbaar + Docker + bèta met de forumvragers → post in Roon Extensions → Extension
       Manager.
 
