@@ -4,6 +4,10 @@ Your Roon library as a stack of CD spines. Every album is a horizontal spine in 
 album is long. Click a spine and it opens like a booklet, with the cover on the left and the track list, musicians and
 facts on the right. Play it on any Roon zone.
 
+![The stack, by artist: every album a spine in its cover's colours, with format, play time and year](docs/stack.jpg)
+
+![An album opened as a booklet: the cover, the tracks with their times, the musicians and the facts](docs/booklet.jpg)
+
 Stacks is a small Roon extension that serves a web page. Run it on any computer on the same network as your Roon Core
 (a NAS, a Raspberry Pi, a Mac or a Linux box), then open the page in any browser: desktop, iPad or phone.
 

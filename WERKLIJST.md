@@ -13,7 +13,8 @@ Bovenaan wat eerst moet; afgevinkt gaat naar het logboek in NOTITIES.md (README.
 
 ## Release-klaar (gesprek 26 okt 2026)
 - [x] Engelse README, licentie Apache-2.0 + NOTICE, versie 0.1.0 (28 okt).
-- [ ] Schermafbeeldingen in de README; een icoon voor de extensie.
+- [x] Schermafbeeldingen in de README (docs/stack.jpg, docs/booklet.jpg, 29 okt).
+- [ ] Een icoon voor de extensie.
 - [x] Docker-image (amd64 + arm64), `/data` als volume, `ROON_CORE` — gebouwd en getest in Docker Desktop op Dylan (28 okt).
 - [x] Op Docker Hub, OPENBAAR: `renebouwmeester/stacks` 0.1.0 + latest, amd64 + arm64 (29 okt).
 - [ ] `npx stacks-for-roon` (npm).
