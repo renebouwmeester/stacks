@@ -25,7 +25,7 @@ Bovenaan wat eerst moet; afgevinkt gaat naar het logboek in NOTITIES.md (README.
 - [ ] Na elke Roon-update: deep-roon-mcp bijwerken en `node intern/kopieer-intern.mjs` opnieuw.
 - [x] Zeggen dat iedereen op het netwerk kan afspelen (geen login) — staat in de README.
 - [ ] René: Deep Roon in een openbare extensie eerst met Roon Labs (Brian) bespreken.
-- [ ] De GitHub-repo openbaar? (de README verwijst naar `git clone`, maar renebouwmeester/stacks is nog privé)
+- [x] De GitHub-repo openbaar (29 okt), na een geschiedenis zonder het Worker-adres (tekenscripts eruit, lokaal in .gitignore).
 - [ ] Volgorde: release-klaar → repo openbaar + Docker + bèta met de forumvragers → post in Roon Extensions → Extension
       Manager.
 
