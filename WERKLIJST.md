@@ -19,9 +19,9 @@ Bovenaan wat eerst moet; afgevinkt gaat naar het logboek in NOTITIES.md (README.
 - [ ] Grote bibliotheken: zichtbare voortgang bij de eerste keer (kleuren ~9 hoezen/s, Deep Roon ~14 albums/s); nagaan
       of 25.000 ruggen soepel scrollen (content-visibility, niet gemeten).
 - [x] ~~Deep Roon als losse server ernaast~~ — opgelost door de kopie (`lib/intern.js`, 26 okt): één installatie.
-- [x] "Richer data" staat bij een nieuwe installatie uit (René, 28 okt); een opgeslagen keuze blijft.
-- [ ] Docker Hub: privé of openbaar (René; login op Dylan is gedaan, 28 okt) — daarna `docker/bouw.sh push` via een
-      Terminal-venster op Dylan.
+- [x] "Richer data" staat bij een nieuwe installatie AAN (René, 29 okt: "minimaal readonly werk, raakt aan de core
+      promise"; 28 okt nog uit); een opgeslagen keuze blijft.
+- [ ] Docker Hub: OPENBAAR (René, 29 okt) — `docker/bouw.sh push` via een Terminal-venster op Dylan.
 - [ ] Na elke Roon-update: deep-roon-mcp bijwerken en `node intern/kopieer-intern.mjs` opnieuw.
 - [x] Zeggen dat iedereen op het netwerk kan afspelen (geen login) — staat in de README.
 - [ ] René: Deep Roon in een openbare extensie eerst met Roon Labs (Brian) bespreken.

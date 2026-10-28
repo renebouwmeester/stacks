@@ -97,9 +97,9 @@ const status = new RoonApiStatus(roon);
 
 // ---- Deep Roon en de instellingen (in Roon › Settings › Extensions › Stacks) ----
 const deep = maakDeep({ bestand: path.join(DATA, 'deep.json'), log });
-// Richer data staat bij een nieuwe installatie uit (René, 28 okt): het interne protocol is onofficieel — wie het wil, zet
-// het in Roon's instellingen aan. Een opgeslagen keuze blijft staan.
-let instellingen = { deep: 'off', catorde: 'catno', catrug: 'sorted', capsule: 'on' };
+// Richer data staat bij een nieuwe installatie aan (René, 29 okt: "het is toch minimaal readonly werk, maar het raakt wel
+// aan de core promise van Stacks"; op 28 okt nog uit). Uit te zetten in Roon's instellingen; een opgeslagen keuze blijft.
+let instellingen = { deep: 'on', catorde: 'catno', catrug: 'sorted', capsule: 'on' };
 instellingen = { ...instellingen, ...(roon.load_config('instellingen') ?? {}) };
 // Van vóór de kopie (26 okt): toen was 'deep' het adres van een Deep Roon MCP — ingevuld telt als aan, leeg als uit.
 if (!['on', 'off'].includes(instellingen.deep)) instellingen.deep = instellingen.deep ? 'on' : 'off';

@@ -33,10 +33,10 @@ It is based on Stacks in Basso, my music app for Apple Music.
   | Any letter | Jump in the stack (A-Z, By Artist, Catalog #) |
   | Esc | Close the open album, or clear the filter |
 
-## Richer data (optional, off by default)
+## Richer data (on by default)
 
 Roon's official extension API gives the album list, covers and playback. It doesn't give play times, release dates,
-catalogue numbers, barcodes, formats or credits. With **Richer data** switched on, Stacks reads those from Roon's
+catalogue numbers, barcodes, formats or credits. With **Richer data**, Stacks reads those from Roon's
 **internal protocol**, the one Roon's own apps use. It does this through code copied from
 [Deep Roon MCP](https://github.com/renebouwmeester/deep-roon-mcp), which builds on Arthur Soares'
 [roon-api-reverse-engineering](https://github.com/arthursoares/roon-api-reverse-engineering).
@@ -46,13 +46,15 @@ and Release Date, Date Added and Catalog # are added to the orders.
 
 **This is unofficial.** It isn't made, endorsed or supported by Roon Labs, and a Roon update can break it until Stacks is
 updated. Stacks uses it carefully:
+- it only reads: it never changes anything in your library;
 - it reads each album once, one at a time;
 - it then refreshes a small share each day;
 - it closes the connection when idle or when Stacks stops.
 
 If Richer data breaks or is switched off, Stacks keeps working with the official API.
 
-Switch it on in Roon › Settings › Extensions › Stacks › Richer data.
+Richer data is on from the start, because it is what makes Stacks Stacks. To use only the official API, switch it off in
+Roon › Settings › Extensions › Stacks › Richer data.
 
 ## Install
 
