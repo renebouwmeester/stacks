@@ -35,6 +35,12 @@ docker run -d --name stacks -p 9360:9360 --restart unless-stopped -v stacks-data
 `STACKS_URL` is optioneel: het adres dat Roon's statusregel noemt (in een container ziet Stacks alleen zijn interne adres).
 Of `--network host` op Docker Desktop (4.34+) multicast wél doorlaat, is niet getest; `ROON_CORE` werkt overal.
 
+**Getest 28 okt in Docker Desktop op Dylan** (Apple silicon): `docker/bouw.sh lokaal` (image 239 MB) en de bouw voor
+amd64+arm64 slagen; de container met `ROON_CORE=192.168.1.99:9330` en `-p 9360:9360` koppelt, leest 1857 albums, de kopie van
+Deep Roon verbindt over het LAN, de pagina antwoordt, `docker stop` sluit schoon. Bouwen kan niet over ssh: Docker Desktop
+vraagt zelf de sleutelhanger (ook voor anonieme downloads) — bouwen in een Terminal-venster op de Mac. De klok in de
+container is UTC; `-e TZ=Europe/Amsterdam` voor de log. Niet getest: `--network host` op Docker Desktop.
+
 `ROON_CORE` werkt ook zonder Docker (`ROON_CORE=… node stacks.js`) — op Dylan getest 28 okt: gekoppeld, bibliotheek, en de
 kopie van Deep Roon gebruikt hetzelfde adres (als `ROON_HOST`).
 

@@ -14,8 +14,8 @@ Bovenaan wat eerst moet; afgevinkt gaat naar het logboek in README.md.
 ## Release-klaar (gesprek 26 okt 2026)
 - [ ] Engelse README met schermafbeeldingen; licentie (Apache, zoals Deep Roon?); icoon voor de extensie; versienummer.
       `uitrol.sh` blijft van ons, buiten de release.
-- [~] Docker-image (amd64 + arm64), `/data` als volume — Dockerfile + `docker/bouw.sh` + `ROON_CORE` klaar (28 okt);
-      nog te doen: bouwen en proberen in Docker Desktop op Gaylord (na macOS 27.2), dan naar Docker Hub. Daarnaast `npx`.
+- [x] Docker-image (amd64 + arm64), `/data` als volume, `ROON_CORE` — gebouwd en getest in Docker Desktop op Dylan (28 okt).
+- [ ] Naar Docker Hub (`docker/bouw.sh push`, René's account) — bij de bèta. Daarnaast `npx stacks-for-roon`.
 - [ ] Grote bibliotheken: zichtbare voortgang bij de eerste keer (kleuren ~9 hoezen/s, Deep Roon ~14 albums/s); nagaan
       of 25.000 ruggen soepel scrollen (content-visibility, niet gemeten).
 - [x] ~~Deep Roon als losse server ernaast~~ — opgelost door de kopie (`lib/intern.js`, 26 okt): één installatie.
