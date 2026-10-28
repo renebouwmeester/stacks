@@ -1,10 +1,10 @@
 # Stacks for Roon
 
-Your Roon library as a stack of CD spines. Every album is a horizontal spine in the colours of its cover, as thick as the
+Your Roon library as a stack of CD spines. Every album is a horizontal spine in the colors of its cover, as thick as the
 album is long. Click a spine and it opens like a booklet, with the cover on the left and the track list, musicians and
 facts on the right. Play it on any Roon zone.
 
-![The stack, by artist: every album a spine in its cover's colours, with format, play time and year](https://raw.githubusercontent.com/renebouwmeester/stacks/main/docs/stack.jpg)
+![The stack, by artist: every album a spine in its cover's colors, with format, play time and year](https://raw.githubusercontent.com/renebouwmeester/stacks/main/docs/stack.jpg)
 
 ![An album opened as a booklet: the cover, the tracks with their times, the musicians and the facts](https://raw.githubusercontent.com/renebouwmeester/stacks/main/docs/booklet.jpg)
 
@@ -17,16 +17,16 @@ It is based on Stacks in Basso, my music app for Apple Music.
 
 ## What it does
 
-- **The stack.** Every album in your library as a spine, coloured from its cover. Stacks computes the colours itself;
+- **The stack.** Every album in your library as a spine, colored from its cover. Stacks computes the colors itself;
   Roon doesn't provide them.
 - **Orders.** Release Date, A-Z, By Artist (each artist's albums oldest first), Date Added, Shuffled and **Catalog #**.
-  Albums without a catalogue number go to the end of the Catalog # order.
+  Albums without a catalog number go to the end of the Catalog # order.
 - **The booklet.** Click a spine to open the album: the cover, the tracks (click one to play from there), the musicians
-  with their instruments, producer and engineer, and a line of facts: year, label, catalogue number, source, tracks, length.
+  with their instruments, producer and engineer, and a line of facts: year, label, catalog number, source, tracks, length.
 - **Playing.** Play, Shuffle, Play Next and Play Later on the zone you choose.
 - **Now Playing.** A panel that slides in from the right, with the cover, a seek bar, transport buttons, shuffle, repeat,
   volume, mute and What's Next, plus the full queue. When the panel is hidden, an optional mini player sits at the bottom.
-- **Filter.** Every word you type must match the title, artist, label, catalogue number, barcode, year, format or source.
+- **Filter.** Every word you type must match the title, artist, label, catalog number, barcode, year, format or source.
   `ecm 24/96` finds your ECM albums in 24/96; `1975 jarrett` finds The Köln Concert.
 - **Keys.**
 
@@ -40,7 +40,7 @@ It is based on Stacks in Basso, my music app for Apple Music.
 ## Richer data (on by default)
 
 Roon's official extension API gives the album list, covers and playback. It doesn't give play times, release dates,
-catalogue numbers, barcodes, formats or credits. With **Richer data**, Stacks reads those from Roon's
+catalog numbers, barcodes, formats or credits. With **Richer data**, Stacks reads those from Roon's
 **internal protocol**, the one Roon's own apps use. It does this through code copied from
 [Deep Roon MCP](https://github.com/renebouwmeester/deep-roon-mcp), which builds on Arthur Soares'
 [roon-api-reverse-engineering](https://github.com/arthursoares/roon-api-reverse-engineering).
@@ -103,7 +103,7 @@ node stacks.js
 2. Open `http://<the computer running Stacks>:9360` in a browser. On an iPad or iPhone, Add to Home Screen opens it full
    screen.
 
-The first time, Stacks computes the colours of all your covers, about ten per second. With Richer data on, it also reads
+The first time, Stacks computes the colors of all your covers, about ten per second. With Richer data on, it also reads
 each album once, about fourteen per second. The spines fill in while you look.
 
 ## Settings
@@ -113,7 +113,7 @@ All settings are in Roon › Settings › Extensions › Stacks:
 | Setting | What it does |
 |---|---|
 | Richer data | On or off (see above) |
-| Catalog # order uses | Catalogue number or barcode |
+| Catalog # order uses | Catalog number or barcode |
 | Catalog # on the spines | Only in the Catalog # order, or always |
 | Mini player when Now Playing is hidden | Show or hide |
 
@@ -122,7 +122,7 @@ Environment variables:
 | Variable | Default | What it does |
 |---|---|---|
 | `PORT` | `9360` | The port of the web page |
-| `STACKS_DATA` | `./data` (`/data` in Docker) | Where Stacks keeps its pairing with Roon, the colours and the Richer data cache |
+| `STACKS_DATA` | `./data` (`/data` in Docker) | Where Stacks keeps its pairing with Roon, the colors and the Richer data cache |
 | `ROON_CORE` | none | Connect to this Core (`host` or `host:port`) instead of finding it |
 | `STACKS_URL` | the computer's address | The address Roon's status line shows for the page |
 | `TZ` | UTC in Docker | The time zone of the log, e.g. `Europe/Amsterdam` |
@@ -138,6 +138,6 @@ Environment variables:
 ## License
 
 Apache License 2.0. See [LICENSE](https://github.com/renebouwmeester/stacks/blob/main/LICENSE) and [NOTICE](https://github.com/renebouwmeester/stacks/blob/main/NOTICE). `lib/intern.js` includes code under Apache-2.0
-(Deep Roon MCP) and MIT (roon-api-reverse-engineering); their licences are in [`intern/`](https://github.com/renebouwmeester/stacks/tree/main/intern).
+(Deep Roon MCP) and MIT (roon-api-reverse-engineering); their licenses are in [`intern/`](https://github.com/renebouwmeester/stacks/tree/main/intern).
 
 Stacks for Roon is not made, endorsed or supported by Roon Labs. Roon is a trademark of Roon Labs LLC.

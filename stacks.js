@@ -115,7 +115,7 @@ function layout(v) {
       { type: 'label', title: deep.stand },
     ] },
     { type: 'dropdown', title: 'Catalog # order uses', setting: 'catorde',
-      values: [{ title: 'Catalogue number', value: 'catno' }, { title: 'Barcode', value: 'barcode' }] },
+      values: [{ title: 'Catalog number', value: 'catno' }, { title: 'Barcode', value: 'barcode' }] },
     // Het nummer op de rug aan of uit (René, 26 okt): altijd, of alleen als de stapel erop gesorteerd is.
     { type: 'dropdown', title: 'Catalog # on the spines', setting: 'catrug',
       values: [{ title: 'Only in Catalog # order', value: 'sorted' }, { title: 'Always', value: 'always' }] },
@@ -165,7 +165,7 @@ function toonStatus() {
   if (!kern) return status.set_status('Waiting for a Roon Core', false);
   const open = albums.filter(a => a.image && !kleuren[a.image]).length;
   status.set_status(laadt ? 'Reading the library…'
-    : `${albums.length} albums${open ? `, colouring ${open}` : ''} · open ${adres()}${deep.aan ? ' · richer data on' : ''}`, false);
+    : `${albums.length} albums${open ? `, coloring ${open}` : ''} · open ${adres()}${deep.aan ? ' · richer data on' : ''}`, false);
 }
 
 // Elk antwoord van Roon met een tijdslimiet (René, 26 okt: "kan geen album meer openklappen" — één verzoek waarop Roon
