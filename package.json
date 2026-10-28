@@ -2,7 +2,7 @@
   "name": "stacks-for-roon",
   "version": "0.1.0",
   "private": true,
-  "description": "Stacks for Roon – virtual crate digging served by a Roon extension",
+  "description": "Stacks for Roon – virtual crate digging! A web app served by a Roon extension.",
   "type": "commonjs",
   "dependencies": {
     "jpeg-js": "^0.4.4",

@@ -16,7 +16,7 @@ RUN npm ci --omit=dev --no-audit --no-fund
 
 FROM node:22-alpine
 LABEL org.opencontainers.image.title="Stacks for Roon" \
-      org.opencontainers.image.description="Stacks for Roon – virtual crate digging served by a Roon extension" \
+      org.opencontainers.image.description="Stacks for Roon – virtual crate digging! A web app served by a Roon extension." \
       org.opencontainers.image.source="https://github.com/renebouwmeester/stacks" \
       org.opencontainers.image.licenses="Apache-2.0" \
       org.opencontainers.image.authors="René Bouwmeester"
