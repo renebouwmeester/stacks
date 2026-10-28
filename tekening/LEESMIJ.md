@@ -5,7 +5,8 @@ berekent, rechts Apple's eigen `bg`/`t1`/`t2` (Basso's `/kast/ruggen`) voor hetz
 als stapel, gesorteerd op catalogusnummer.
 
 Opnieuw: `python3 tekening/verzamel.py tekening/keuze.json && node tekening/bereken.js && swift tekening/teken.swift tekening`
-(`verzamel.py` haalt via Basso's Roon-MCP het album, de hoes en het Apple-tegenstuk; de hoezen staan buiten git.)
+(`verzamel.py` haalt via Basso's Roon-MCP het album, de hoes en het Apple-tegenstuk; `verzamel.py`, `mcp.sh`, `keuze.json`
+en de hoezen staan alleen lokaal, niet in de openbare repo — ze praten met Basso's Worker.)
 
 ## De methode (lib/kleur.js, puur JS met jpeg-js — draait straks zo in de extensie)
 1. hoes → 48×48 (blokgemiddelde);

@@ -1,6 +1,9 @@
 node_modules/
 tekening/hoezen/
 tekening/*.json
-!tekening/keuze.json
 data/
 config.json
+# De tekenscripts praten met Basso's Worker (adres + sleutel uit Continuo): lokaal, niet in de openbare repo (29 okt).
+tekening/mcp.sh
+tekening/verzamel.py
+tekening/keuze.json
