@@ -82,6 +82,10 @@ De rugkleuren worden één keer per hoes berekend en bewaard in `data/kleuren.js
    (`/image/<sleutel>.jpg`, `.300.jpg`); afspelen via het interne protocol (Play From Here = de tracks vanaf daar).
    Feitenregel "Hidden in Roon", filterwoord `hidden`. Gemeten op Dylan: 2211 albums (= Roon's Home), 353 verborgen,
    alle gekleurd en gelezen. Stacks speelt dus niet meer alleen-lezend via het interne protocol (README zegt het).
+   Dezelfde avond (René: "volgt de setting in Roon?"): Roon bewaart "Show hidden tracks and albums" NIET in de Core —
+   elke vraag van de app geeft IncludeHidden zelf mee (AlbumQueryCriteria, SearchParameters, …; niets in
+   LibrarySettingsInfo of het profiel). Dus een eigen schakelaar "Show hidden albums" in de groep Richer data, standaard
+   No; aan → de bibliotheek opnieuw lezen mét verborgen. Op Dylan nu uit: 1858 ruggen.
 
 ## Stap 3: wat de officiële API geeft (gemeten 26 okt)
 Een album in browse (`albums` › album): "Play Album" plus per track `"3. Titel"` met de uitvoerenden als subtitle — geen

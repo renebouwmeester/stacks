@@ -46,11 +46,11 @@ catalog numbers, barcodes, formats or credits. With **Richer data**, Stacks read
 [roon-api-reverse-engineering](https://github.com/arthursoares/roon-api-reverse-engineering).
 
 With Richer data, the spines get their thickness, play time, year and format, the booklet gets track times and credits,
-and Release Date, Date Added and Catalog # are added to the orders. The albums Roon hides join the stack too (see below).
+and Release Date, Date Added and Catalog # are added to the orders. It can also show the albums Roon hides (see below).
 
 **This is unofficial.** It isn't made, endorsed or supported by Roon Labs, and a Roon update can break it until Stacks is
 updated. Stacks uses it carefully:
-- it never changes anything in your library: it reads, and plays the hidden albums;
+- it never changes anything in your library: it reads, and plays hidden albums if you show them;
 - it reads each album once, one at a time;
 - it then refreshes a small share each day;
 - it closes the connection when idle or when Stacks stops.
@@ -113,6 +113,7 @@ All settings are in Roon › Settings › Extensions › Stacks:
 | Setting | What it does |
 |---|---|
 | Richer data | On or off (see above) |
+| Show hidden albums | No or yes; needs Richer data (see Good to know) |
 | Catalog # order uses | Catalog number or barcode |
 | Catalog # on the spines | Only in the Catalog # order, or always |
 | Mini player when Now Playing is hidden | Show or hide |
@@ -134,10 +135,11 @@ Environment variables:
 - **"Open in Roon" isn't possible.** As far as we know, an extension can't make the Roon app show an album.
 - **Two copies of an album** (say one from Qobuz and one from TIDAL) show their source on the spine, so you can tell them
   apart.
-- **Hidden albums.** Roon hides some albums, mostly the second copy of an album you have twice. Roon's extension API
-  leaves them out, so with Richer data off Stacks shows the same albums as Roon's Albums page with "Show hidden tracks and
-  albums" off. With Richer data on, Stacks shows them as well, like Roon with that setting on: the booklet says
-  "Hidden in Roon", and they play through the internal protocol. Type `hidden` in the filter to see only those.
+- **Hidden albums.** Roon hides some albums, mostly the second copy of an album you have twice. Like Roon, Stacks leaves
+  them out. If you switch on "Show hidden tracks and albums" in Roon to see them, switch on **Show hidden albums** in
+  Stacks' settings too (it needs Richer data): Roon keeps its own switch in the app on each device, where Stacks can't
+  read it. Hidden albums then get a spine of their own, the booklet says "Hidden in Roon", and they play through the
+  internal protocol. Type `hidden` in the filter to see only those.
 
 ## License
 

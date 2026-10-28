@@ -99,21 +99,24 @@ const status = new RoonApiStatus(roon);
 const deep = maakDeep({ bestand: path.join(DATA, 'deep.json'), log });
 // Richer data staat bij een nieuwe installatie aan (René, 29 okt: "het is toch minimaal readonly werk, maar het raakt wel
 // aan de core promise van Stacks"; op 28 okt nog uit). Uit te zetten in Roon's instellingen; een opgeslagen keuze blijft.
-let instellingen = { deep: 'on', catorde: 'catno', catrug: 'sorted', capsule: 'on' };
+let instellingen = { deep: 'on', verborgen: 'off', catorde: 'catno', catrug: 'sorted', capsule: 'on' };
 instellingen = { ...instellingen, ...(roon.load_config('instellingen') ?? {}) };
 // Van vóór de kopie (26 okt): toen was 'deep' het adres van een Deep Roon MCP — ingevuld telt als aan, leeg als uit.
 if (!['on', 'off'].includes(instellingen.deep)) instellingen.deep = instellingen.deep ? 'on' : 'off';
 deep.zetAan(instellingen.deep === 'on');
+deep.zetVerborgen(instellingen.verborgen === 'on');
 // Korte regels: Roon breekt een label niet af (Solo, 11 okt).
 function layout(v) {
   return { values: v, has_error: false, layout: [
     { type: 'group', title: 'Richer data (optional)', items: [
-      { type: 'label', title: 'Play times, credits, dates and catalog numbers,' },
-      { type: 'label', title: 'and the albums Roon hides, come from' },
-      { type: 'label', title: 'Roon\'s internal protocol, as Deep Roon reads it' },
+      { type: 'label', title: 'Play times, credits, dates and catalog numbers' },
+      { type: 'label', title: 'come from Roon\'s internal protocol, as Deep Roon reads it' },
       { type: 'label', title: 'It is unofficial and can break with a Roon update' },
       { type: 'dropdown', title: 'Richer data', setting: 'deep', values: [{ title: 'On', value: 'on' }, { title: 'Off', value: 'off' }] },
       { type: 'label', title: deep.stand },
+      // De verborgen albums (29 okt): Roon's eigen schakelaar zit in de app op het apparaat, die kan Stacks niet lezen.
+      { type: 'dropdown', title: 'Show hidden albums', setting: 'verborgen', values: [{ title: 'No', value: 'off' }, { title: 'Yes', value: 'on' }] },
+      { type: 'label', title: 'Like Roon\'s "Show hidden tracks and albums"' },
     ] },
     { type: 'dropdown', title: 'Catalog # order uses', setting: 'catorde',
       values: [{ title: 'Catalog number', value: 'catno' }, { title: 'Barcode', value: 'barcode' }] },
@@ -132,10 +135,12 @@ const settings = new RoonApiSettings(roon, {
     req.send_complete(l.has_error ? 'NotValid' : 'Success', { settings: l });
     if (isDryRun || l.has_error) return;
     const ander = (l.values.deep === 'off' ? 'off' : 'on') !== instellingen.deep;
-    instellingen = { deep: l.values.deep === 'off' ? 'off' : 'on', catorde: l.values.catorde === 'barcode' ? 'barcode' : 'catno',
+    instellingen = { deep: l.values.deep === 'off' ? 'off' : 'on', verborgen: l.values.verborgen === 'on' ? 'on' : 'off', catorde: l.values.catorde === 'barcode' ? 'barcode' : 'catno',
                      catrug: l.values.catrug === 'always' ? 'always' : 'sorted', capsule: l.values.capsule === 'off' ? 'off' : 'on' };
     roon.save_config('instellingen', instellingen);
-    if (ander) { deep.zetAan(instellingen.deep === 'on'); deep.ververs(veranderd); }
+    const verborgenAnder = deep.zetVerborgen(instellingen.verborgen === 'on');
+    if (ander) deep.zetAan(instellingen.deep === 'on');
+    if (ander || verborgenAnder) deep.ververs(veranderd).then(() => kleurAlles());
   },
 });
 function veranderd() { toonStatus(); settings.update_settings(layout(instellingen)); }
