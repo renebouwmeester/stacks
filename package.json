@@ -2,7 +2,7 @@
   "name": "stacks-for-roon",
   "version": "0.1.0",
   "private": true,
-  "description": "Basso's Stacks for a Roon library: albums as spines in their covers' colours, in a web page served by a Roon extension",
+  "description": "Stacks for Roon – virtual crate digging served by a Roon extension",
   "type": "commonjs",
   "dependencies": {
     "jpeg-js": "^0.4.4",
@@ -14,5 +14,10 @@
     "node-roon-api-transport": "github:roonlabs/node-roon-api-transport"
   },
   "license": "Apache-2.0",
-  "author": "René Bouwmeester"
+  "author": "René Bouwmeester",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/renebouwmeester/stacks.git"
+  },
+  "homepage": "https://github.com/renebouwmeester/stacks"
 }
