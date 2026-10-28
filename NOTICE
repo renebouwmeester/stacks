@@ -1,0 +1,13 @@
+Stacks for Roon
+Copyright 2026 René Bouwmeester
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+lib/intern.js is copied from Deep Roon MCP (Apache-2.0, see intern/NOTICE-deep-roon-mcp and intern/LICENSE-deep-roon-mcp)
+and includes the core of roon-api-reverse-engineering by Arthur Soares (MIT License, see
+intern/LICENSE-roon-api-reverse-engineering). It speaks Roon's internal protocol, which is unofficial: it is used only when
+"Richer data" is switched on in Roon › Settings › Extensions › Stacks.
+
+Stacks uses Roon Labs' node-roon-api packages (Apache-2.0) and jpeg-js (BSD-3-Clause).
+
+Stacks for Roon is not made, endorsed or supported by Roon Labs.

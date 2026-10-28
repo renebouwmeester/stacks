@@ -1,6 +1,6 @@
 # Werklijst Stacks for Roon
 
-Bovenaan wat eerst moet; afgevinkt gaat naar het logboek in README.md.
+Bovenaan wat eerst moet; afgevinkt gaat naar het logboek in NOTITIES.md (README.md is sinds 28 okt de Engelse, openbare).
 
 ## Deep Roon zuiniger (René, 26 okt 2026)
 - [x] **Niet elk kwartier de hele bibliotheek.** (26 okt: eerst één pagina; totaal en nieuwste gelijk → klaar.) Nu leest `deep.ververs` bij elke lading van de officiële lijst (start + elke
@@ -12,16 +12,18 @@ Bovenaan wat eerst moet; afgevinkt gaat naar het logboek in README.md.
       een kleine portie van de oudste bewaarde albums opnieuw lezen (met een datum per album in de cache).
 
 ## Release-klaar (gesprek 26 okt 2026)
-- [ ] Engelse README met schermafbeeldingen; licentie (Apache, zoals Deep Roon?); icoon voor de extensie; versienummer.
-      `uitrol.sh` blijft van ons, buiten de release.
+- [x] Engelse README, licentie Apache-2.0 + NOTICE, versie 0.1.0 (28 okt).
+- [ ] Schermafbeeldingen in de README; een icoon voor de extensie.
 - [x] Docker-image (amd64 + arm64), `/data` als volume, `ROON_CORE` — gebouwd en getest in Docker Desktop op Dylan (28 okt).
 - [ ] Naar Docker Hub (`docker/bouw.sh push`, René's account) — bij de bèta. Daarnaast `npx stacks-for-roon`.
 - [ ] Grote bibliotheken: zichtbare voortgang bij de eerste keer (kleuren ~9 hoezen/s, Deep Roon ~14 albums/s); nagaan
       of 25.000 ruggen soepel scrollen (content-visibility, niet gemeten).
 - [x] ~~Deep Roon als losse server ernaast~~ — opgelost door de kopie (`lib/intern.js`, 26 okt): één installatie.
-- [ ] "Richer data" standaard aan of uit bij een release? (René, samen met het gesprek met Roon Labs.)
+- [x] "Richer data" staat bij een nieuwe installatie uit (René, 28 okt); een opgeslagen keuze blijft.
+- [ ] Docker Hub: privé of openbaar (René; login op Dylan is gedaan, 28 okt) — daarna `docker/bouw.sh push` via een
+      Terminal-venster op Dylan.
 - [ ] Na elke Roon-update: deep-roon-mcp bijwerken en `node intern/kopieer-intern.mjs` opnieuw.
-- [ ] Zeggen dat iedereen op het netwerk kan afspelen (geen login), zoals bij Roon Web Controller.
+- [x] Zeggen dat iedereen op het netwerk kan afspelen (geen login) — staat in de README.
 - [ ] René: Deep Roon in een openbare extensie eerst met Roon Labs (Brian) bespreken.
 - [ ] Volgorde: release-klaar → repo openbaar + Docker + bèta met de forumvragers → post in Roon Extensions → Extension
       Manager.

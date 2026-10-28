@@ -1,83 +1,137 @@
 # Stacks for Roon
 
-Basso's Stacks voor een Roon-bibliotheek: albums als liggende ruggen in de kleuren van de hoes. Een kleine Roon-extensie
-in Node die een webpagina serveert, zodat het op een Core, Pi of in Docker draait en in elke browser opent.
+Your Roon library as a stack of CD spines. Every album is a horizontal spine in the colours of its cover, as thick as the
+album is long. Click a spine and it opens like a booklet, with the cover on the left and the track list, musicians and
+facts on the right. Play it on any Roon zone.
 
-## Principe (René, 26 okt 2026)
-**Official API first, internal protocol where needed.** Alles wat de officiële Roon API kan, komt daaruit. Deep Roon
-(het interne protocol) alleen voor wat de officiële API niet geeft: speelduur, release- en toevoegdatum,
-catalogusnummer, barcode, formaat, credits. Breekt het interne protocol ooit bij een Roon-update, dan werkt Stacks
-door met minder: die volgordes en gegevens verdwijnen stil uit het scherm, de stapel zelf blijft.
+Stacks is a small Roon extension that serves a web page. Run it on any computer on the same network as your Roon Core
+(a NAS, a Raspberry Pi, a Mac or a Linux box), then open the page in any browser: desktop, iPad or phone.
 
-| Wat | Bron |
-|---|---|
-| albumlijst, titel, artiest, hoes | officieel (browse, image) |
-| rugkleuren | zelf berekend uit de hoes (`lib/kleur.js`) |
-| afspelen, zones | officieel (browse-acties, transport) |
-| speelduur (dikte), datums, catalogusnummer, barcode, tracktijden, credits | Roon's interne protocol: twee functies uit Deep Roon, gekopieerd (`lib/intern.js`) |
+It is based on Stacks in Basso, my music app for Apple Music.
 
-## Docker (28 okt 2026)
-Eén image voor linux/amd64 en linux/arm64 (`Dockerfile`, bouwen met `docker/bouw.sh`; `lokaal` laadt het als `stacks:proef`,
-`push` zet het op Docker Hub). Alles wat moet blijven staat in `/data`: de koppeling met Roon (`config.json`), de kleuren en
-de Deep Roon-cache.
+> **Beta.** Stacks for Roon is new. Expect rough edges, and please report what you find.
 
-**Linux of NAS** — Stacks zoekt de Core zelf (SOOD, UDP-multicast op poort 9003); dat kan alleen met het netwerk van de host:
+## What it does
+
+- **The stack.** Every album in your library as a spine, coloured from its cover. Stacks computes the colours itself;
+  Roon doesn't provide them.
+- **Orders.** Release Date, A-Z, By Artist (each artist's albums oldest first), Date Added, Shuffled and **Catalog #**.
+  Albums without a catalogue number go to the end of the Catalog # order.
+- **The booklet.** Click a spine to open the album: the cover, the tracks (click one to play from there), the musicians
+  with their instruments, producer and engineer, and a line of facts: year, label, catalogue number, source, tracks, length.
+- **Playing.** Play, Shuffle, Play Next and Play Later on the zone you choose.
+- **Now Playing.** A panel that slides in from the right, with the cover, a seek bar, transport buttons, shuffle, repeat,
+  volume, mute and What's Next, plus the full queue. When the panel is hidden, an optional mini player sits at the bottom.
+- **Filter.** Every word you type must match the title, artist, label, catalogue number, barcode, year, format or source.
+  `ecm 24/96` finds your ECM albums in 24/96; `1975 jarrett` finds The Köln Concert.
+- **Keys.**
+
+  | Key | What it does |
+  |---|---|
+  | ⌘F / Ctrl+F | Filter |
+  | ⌥N / Alt+N | Show or hide Now Playing |
+  | Any letter | Jump in the stack (A-Z, By Artist, Catalog #) |
+  | Esc | Close the open album, or clear the filter |
+
+## Richer data (optional, off by default)
+
+Roon's official extension API gives the album list, covers and playback. It doesn't give play times, release dates,
+catalogue numbers, barcodes, formats or credits. With **Richer data** switched on, Stacks reads those from Roon's
+**internal protocol**, the one Roon's own apps use. It does this through code copied from
+[Deep Roon MCP](https://github.com/renebouwmeester/deep-roon-mcp), which builds on Arthur Soares'
+[roon-api-reverse-engineering](https://github.com/arthursoares/roon-api-reverse-engineering).
+
+With Richer data, the spines get their thickness, play time, year and format, the booklet gets track times and credits,
+and Release Date, Date Added and Catalog # are added to the orders.
+
+**This is unofficial.** It isn't made, endorsed or supported by Roon Labs, and a Roon update can break it until Stacks is
+updated. Stacks uses it carefully:
+- it reads each album once, one at a time;
+- it then refreshes a small share each day;
+- it closes the connection when idle or when Stacks stops.
+
+If Richer data breaks or is switched off, Stacks keeps working with the official API.
+
+Switch it on in Roon › Settings › Extensions › Stacks › Richer data.
+
+## Install
+
+### Docker on Linux or a NAS
+
+Stacks finds the Core by itself. That only works on the host's network:
+
+```bash
+docker run -d --name stacks --network host --restart unless-stopped \
+  -v stacks-data:/data renebouwmeester/stacks
 ```
-docker run -d --name stacks --network host --restart unless-stopped -v stacks-data:/data renebouwmeester/stacks
+
+### Docker Desktop on a Mac or Windows
+
+Docker Desktop runs containers in a virtual machine, and Roon's discovery doesn't reach into it. Give Stacks the address
+of your Core instead (its IP address and port 9330):
+
+```bash
+docker run -d --name stacks -p 9360:9360 --restart unless-stopped \
+  -v stacks-data:/data \
+  -e ROON_CORE=192.168.1.10:9330 \
+  -e STACKS_URL=http://my-computer.local:9360 \
+  renebouwmeester/stacks
 ```
 
-**Docker Desktop (Mac, Windows)** — de containers draaien daar in een Linux-VM waar de multicast niet doorkomt; geef de Core
-met de hand op (`ROON_CORE`, het adres van de Core en poort 9330), dan verbindt Stacks rechtstreeks over TCP:
-```
-docker run -d --name stacks -p 9360:9360 --restart unless-stopped -v stacks-data:/data \
-  -e ROON_CORE=192.168.1.10:9330 -e STACKS_URL=http://mijn-mac.local:9360 renebouwmeester/stacks
-```
-`STACKS_URL` is optioneel: het adres dat Roon's statusregel noemt (in een container ziet Stacks alleen zijn interne adres).
-Of `--network host` op Docker Desktop (4.34+) multicast wél doorlaat, is niet getest; `ROON_CORE` werkt overal.
+The image runs on Intel and ARM (Apple silicon, Raspberry Pi 4 and 5, most NAS models).
 
-**Getest 28 okt in Docker Desktop op Dylan** (Apple silicon): `docker/bouw.sh lokaal` (image 239 MB) en de bouw voor
-amd64+arm64 slagen; de container met `ROON_CORE=192.168.1.99:9330` en `-p 9360:9360` koppelt, leest 1857 albums, de kopie van
-Deep Roon verbindt over het LAN, de pagina antwoordt, `docker stop` sluit schoon. Bouwen kan niet over ssh: Docker Desktop
-vraagt zelf de sleutelhanger (ook voor anonieme downloads) — bouwen in een Terminal-venster op de Mac. De klok in de
-container is UTC; `-e TZ=Europe/Amsterdam` voor de log. Niet getest: `--network host` op Docker Desktop.
+### From source
 
-`ROON_CORE` werkt ook zonder Docker (`ROON_CORE=… node stacks.js`) — op Dylan getest 28 okt: gekoppeld, bibliotheek, en de
-kopie van Deep Roon gebruikt hetzelfde adres (als `ROON_HOST`).
+You need Node.js 18 or newer.
 
-## Licenties
-`lib/intern.js` bevat code uit deep-roon-mcp (Apache-2.0) en Arthur Soares' roon-api-reverse-engineering (MIT): zie
-`intern/NOTICE-deep-roon-mcp` en de LICENSE-bestanden in `intern/`.
-
-## Draaien
-```
+```bash
+git clone https://github.com/renebouwmeester/stacks
+cd stacks
 npm install
-node stacks.js            # poort 9360 (PORT=…), gegevens in ./data (STACKS_DATA=…)
+node stacks.js
 ```
-Daarna in Roon › Settings › Extensions "Stacks on <host>" aanzetten, en `http://<host>:9360` openen.
-Vaste dienst op Dylan: `./uitrol.sh` (launchd `com.rene.stacks`, log in ~/Library/Logs/stacks.log op Dylan).
-De rugkleuren worden één keer per hoes berekend en bewaard in `data/kleuren.json` (per image_key).
 
-## Stand
-1. ✔ Tekening: berekende kleuren naast Apple's (`tekening/`, zie LEESMIJ daar)
-2. ✔ Kale webpagina met ruggen uit de officiële API — sorteren: By Artist, A-Z, Shuffled. De kleuren zijn feller dan
-   Apple's; René (26 okt): "wat heftiger, maar dat is juist wel leuk — mooi zo". Afgekaart, niet temperen.
-3. Album openklappen + afspelen op een zone, de klapper als het boekje van Stacks Full Screen op de Mac (René, 26 okt) — draait op Dylan (http://192.168.1.99:9360) sinds 26 okt; afspelen nog door René te proberen
-4. ✔ Deep Roon-laag (26 okt): dikte naar speelduur, duur en HI-RES op de rug, Release Date / Date Added / Catalogue
-   Number, tracktijden, credits (musici met instrument, Produced by, Engineer) en een feitenregel in het boekje.
-   Eerst via een draaiende Deep Roon MCP; sinds 26 okt avond (René: "isoleren — de mug en de olifant") met alleen
-   `album()` en `library()` en het protocol eronder, gekopieerd uit deep-roon-mcp naar `lib/intern.js` door
-   `node intern/kopieer-intern.mjs` (commit van deep-roon-mcp in de kop; Deep Roon's eigen extensie vervangen door
-   `intern/official.ts`: de toestemming is Stacks' koppeling). Breekt een Roon-update het protocol: Deep Roon repareren,
-   opnieuw kopiëren. Aan/uit in Roon › Settings › Extensions › Stacks ("Richer data"). Eén keer per album
-   `roon_album` (rustig, 40 ms ertussen; cache data/deep.json), de Date Added-volgorde uit `roon_library sort=added`.
-   Gemeten op René's bibliotheek: 1858/1858 gekoppeld, speelduur 1858, releasedatum 1314 (anders het jaar),
-   catalogusnummer 769, barcode 1836, hi-res 368. Koppelen op titel + artiest, eerst letterlijk.
+### Then
 
-## Stap 3: wat de officiële API geeft (gemeten 26 okt)
-Een album in browse (`albums` › album): "Play Album" plus per track `"3. Titel"` met de uitvoerenden als subtitle — geen
-speelduur. Acties onder Play Album en onder een track: Play Now, Add Next, Queue, Start Radio — ook met een zone erbij
-geen Play From Here en geen Shuffle. Play From Here doet Stacks als "album Play Now, dan transport.play_from_here naar
-die track in de wachtrij"; Shuffle als "shuffle aan op de zone + Play Now" (de zone blijft daarna op shuffle staan).
-Albums vindt de extensie terug op hun plek `n` in Roon's lijst, met de image_key als controle (item_keys gelden maar
-één browse-sessie); veranderde de bibliotheek, dan leest hij opnieuw en probeert de pagina het nog eens.
-Het inlegvel toont de tracks en de uitvoerenden uit de tracks (zonder de albumartiest) — credits zijn Deep Roon.
+1. In Roon, open Settings › Extensions and click **Enable** next to "Stacks on …".
+2. Open `http://<the computer running Stacks>:9360` in a browser. On an iPad or iPhone, Add to Home Screen opens it full
+   screen.
+
+The first time, Stacks computes the colours of all your covers, about ten per second. With Richer data on, it also reads
+each album once, about fourteen per second. The spines fill in while you look.
+
+## Settings
+
+All settings are in Roon › Settings › Extensions › Stacks:
+
+| Setting | What it does |
+|---|---|
+| Richer data | On or off (see above) |
+| Catalog # order uses | Catalogue number or barcode |
+| Catalog # on the spines | Only in the Catalog # order, or always |
+| Mini player when Now Playing is hidden | Show or hide |
+
+Environment variables:
+
+| Variable | Default | What it does |
+|---|---|---|
+| `PORT` | `9360` | The port of the web page |
+| `STACKS_DATA` | `./data` (`/data` in Docker) | Where Stacks keeps its pairing with Roon, the colours and the Richer data cache |
+| `ROON_CORE` | none | Connect to this Core (`host` or `host:port`) instead of finding it |
+| `STACKS_URL` | the computer's address | The address Roon's status line shows for the page |
+| `TZ` | UTC in Docker | The time zone of the log, e.g. `Europe/Amsterdam` |
+
+## Good to know
+
+- **No login.** Anyone on your network can open the page and play music, as with other Roon web remotes. Keep port 9360
+  on your own network; don't forward it to the internet.
+- **"Open in Roon" isn't possible.** As far as we know, an extension can't make the Roon app show an album.
+- **Two copies of an album** (say one from Qobuz and one from TIDAL) show their source on the spine, so you can tell them
+  apart.
+
+## License
+
+Apache License 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE). `lib/intern.js` includes code under Apache-2.0
+(Deep Roon MCP) and MIT (roon-api-reverse-engineering); their licences are in `intern/`.
+
+Stacks for Roon is not made, endorsed or supported by Roon Labs. Roon is a trademark of Roon Labs LLC.

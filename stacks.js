@@ -66,7 +66,7 @@ let laadt = false;
 const roon = new RoonApi({
   extension_id: 'nl.renebouwmeester.stacks',
   display_name: `Stacks on ${os.hostname().split('.')[0]}`,
-  display_version: '0.0.1',
+  display_version: require('./package.json').version,
   publisher: 'René Bouwmeester',
   email: '',
   website: 'https://github.com/renebouwmeester/stacks',
@@ -97,7 +97,9 @@ const status = new RoonApiStatus(roon);
 
 // ---- Deep Roon en de instellingen (in Roon › Settings › Extensions › Stacks) ----
 const deep = maakDeep({ bestand: path.join(DATA, 'deep.json'), log });
-let instellingen = { deep: 'on', catorde: 'catno', catrug: 'sorted', capsule: 'on' };
+// Richer data staat bij een nieuwe installatie uit (René, 28 okt): het interne protocol is onofficieel — wie het wil, zet
+// het in Roon's instellingen aan. Een opgeslagen keuze blijft staan.
+let instellingen = { deep: 'off', catorde: 'catno', catrug: 'sorted', capsule: 'on' };
 instellingen = { ...instellingen, ...(roon.load_config('instellingen') ?? {}) };
 // Van vóór de kopie (26 okt): toen was 'deep' het adres van een Deep Roon MCP — ingevuld telt als aan, leeg als uit.
 if (!['on', 'off'].includes(instellingen.deep)) instellingen.deep = instellingen.deep ? 'on' : 'off';
@@ -115,7 +117,7 @@ function layout(v) {
     { type: 'dropdown', title: 'Catalog # order uses', setting: 'catorde',
       values: [{ title: 'Catalogue number', value: 'catno' }, { title: 'Barcode', value: 'barcode' }] },
     // Het nummer op de rug aan of uit (René, 26 okt): altijd, of alleen als de stapel erop gesorteerd is.
-    { type: 'dropdown', title: 'Catalogue number on the spines', setting: 'catrug',
+    { type: 'dropdown', title: 'Catalog # on the spines', setting: 'catrug',
       values: [{ title: 'Only in Catalog # order', value: 'sorted' }, { title: 'Always', value: 'always' }] },
     // De speelcapsule onderin als Now Playing dicht is: aan of uit (René, 26 okt: "de mini-player optioneel").
     { type: 'dropdown', title: 'Mini player when Now Playing is hidden', setting: 'capsule',

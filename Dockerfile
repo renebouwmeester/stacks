@@ -17,7 +17,8 @@ RUN npm ci --omit=dev --no-audit --no-fund
 FROM node:22-alpine
 WORKDIR /usr/src/app
 COPY --from=bouw /usr/src/app/node_modules ./node_modules
-COPY package.json stacks.js ./
+COPY package.json stacks.js LICENSE NOTICE ./
+COPY intern/LICENSE-* intern/NOTICE-* ./intern/
 COPY lib ./lib
 COPY web ./web
 # Alles wat moet blijven — de koppeling met Roon (config.json), de kleuren, de Deep Roon-cache — staat in /data.
