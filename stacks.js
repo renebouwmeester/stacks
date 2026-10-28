@@ -5,7 +5,7 @@
 // Stap 4: de rijkere laag (speelduur, datums, catalogusnummer, credits) uit Roon's interne protocol — de twee functies
 // gekopieerd uit Deep Roon (lib/intern.js); uit te zetten in Roon's instellingen.
 //
-// Gebruik: node stacks.js   (poort 9360, of PORT=…; gegevens in ./data, of STACKS_DATA=…)
+// Gebruik: node stacks.js   (poort 9360, of PORT=…; gegevens in ./data, of STACKS_DATA=…; de Core met de hand: ROON_CORE=host[:poort])
 const RoonApi = require('node-roon-api');
 const RoonApiBrowse = require('node-roon-api-browse');
 const RoonApiImage = require('node-roon-api-image');
@@ -22,6 +22,13 @@ const { maakDeep } = require('./lib/deep');
 const POORT = Number(process.env.PORT) || 9360;
 const DATA = process.env.STACKS_DATA || path.join(__dirname, 'data');
 fs.mkdirSync(DATA, { recursive: true });
+// De koppeling met Roon (node-roon-api's config.json: het token en de instellingen) woont in de datamap, zodat een container
+// hem in zijn volume houdt (28 okt, Docker). Van daarvóór stond hij naast stacks.js: één keer meeverhuizen.
+{
+  const oud = path.join(__dirname, 'config.json'), nieuw = path.join(DATA, 'config.json');
+  if (!fs.existsSync(nieuw) && fs.existsSync(oud)) fs.copyFileSync(oud, nieuw);
+  process.chdir(DATA);
+}
 const KLEURBESTAND = path.join(DATA, 'kleuren.json');
 
 function log(...a) { console.log(new Date().toISOString().slice(11, 19), ...a); }
@@ -131,9 +138,23 @@ const settings = new RoonApiSettings(roon, {
 function veranderd() { toonStatus(); settings.update_settings(layout(instellingen)); }
 
 roon.init_services({ required_services: [RoonApiBrowse, RoonApiImage, RoonApiTransport], provided_services: [status, settings] });
-roon.start_discovery();
+// De Core vinden: zelf zoeken (SOOD, UDP-multicast op 9003), of met de hand via ROON_CORE=host[:poort] (28 okt, Basso
+// Development: Docker Desktop op de Mac draait containers in een Linux-VM, en daar komt die multicast niet door). Met de hand
+// verbindt hij rechtstreeks over TCP en blijft hij het opnieuw proberen als de verbinding wegvalt. De kopie van Deep Roon
+// (lib/intern.js) leest hetzelfde adres als ROON_HOST.
+const handCore = (process.env.ROON_CORE ?? '').trim();
+if (handCore) {
+  const m = /^\[?([^\]]+?)\]?(?::(\d+))?$/.exec(handCore);
+  const host = m?.[1] ?? handCore, port = Number(m?.[2] ?? 9330);
+  process.env.ROON_HOST ??= `${host}:${port}`;
+  log('Core met de hand:', `${host}:${port}`);
+  const verbind = () => roon.ws_connect({ host, port, onclose: () => setTimeout(verbind, 3000) });
+  verbind();
+} else roon.start_discovery();
 
 function adres() {
+  // In een container ziet Stacks alleen zijn eigen interne adres: STACKS_URL zegt waar de pagina echt te openen is.
+  if (process.env.STACKS_URL) return process.env.STACKS_URL.replace(/\/$/, '');
   for (const lijst of Object.values(os.networkInterfaces()))
     for (const a of lijst ?? []) if (a.family === 'IPv4' && !a.internal) return `http://${a.address}:${POORT}`;
   return `http://localhost:${POORT}`;

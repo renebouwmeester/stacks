@@ -16,6 +16,28 @@ door met minder: die volgordes en gegevens verdwijnen stil uit het scherm, de st
 | afspelen, zones | officieel (browse-acties, transport) |
 | speelduur (dikte), datums, catalogusnummer, barcode, tracktijden, credits | Roon's interne protocol: twee functies uit Deep Roon, gekopieerd (`lib/intern.js`) |
 
+## Docker (28 okt 2026)
+Eén image voor linux/amd64 en linux/arm64 (`Dockerfile`, bouwen met `docker/bouw.sh`; `lokaal` laadt het als `stacks:proef`,
+`push` zet het op Docker Hub). Alles wat moet blijven staat in `/data`: de koppeling met Roon (`config.json`), de kleuren en
+de Deep Roon-cache.
+
+**Linux of NAS** — Stacks zoekt de Core zelf (SOOD, UDP-multicast op poort 9003); dat kan alleen met het netwerk van de host:
+```
+docker run -d --name stacks --network host --restart unless-stopped -v stacks-data:/data renebouwmeester/stacks
+```
+
+**Docker Desktop (Mac, Windows)** — de containers draaien daar in een Linux-VM waar de multicast niet doorkomt; geef de Core
+met de hand op (`ROON_CORE`, het adres van de Core en poort 9330), dan verbindt Stacks rechtstreeks over TCP:
+```
+docker run -d --name stacks -p 9360:9360 --restart unless-stopped -v stacks-data:/data \
+  -e ROON_CORE=192.168.1.10:9330 -e STACKS_URL=http://mijn-mac.local:9360 renebouwmeester/stacks
+```
+`STACKS_URL` is optioneel: het adres dat Roon's statusregel noemt (in een container ziet Stacks alleen zijn interne adres).
+Of `--network host` op Docker Desktop (4.34+) multicast wél doorlaat, is niet getest; `ROON_CORE` werkt overal.
+
+`ROON_CORE` werkt ook zonder Docker (`ROON_CORE=… node stacks.js`) — op Dylan getest 28 okt: gekoppeld, bibliotheek, en de
+kopie van Deep Roon gebruikt hetzelfde adres (als `ROON_HOST`).
+
 ## Licenties
 `lib/intern.js` bevat code uit deep-roon-mcp (Apache-2.0) en Arthur Soares' roon-api-reverse-engineering (MIT): zie
 `intern/NOTICE-deep-roon-mcp` en de LICENSE-bestanden in `intern/`.

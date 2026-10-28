@@ -1,0 +1,9 @@
+.git
+node_modules
+data
+config.json
+tekening
+intern
+uitrol.sh
+docker
+*.md
