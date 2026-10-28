@@ -108,8 +108,9 @@ deep.zetAan(instellingen.deep === 'on');
 function layout(v) {
   return { values: v, has_error: false, layout: [
     { type: 'group', title: 'Richer data (optional)', items: [
-      { type: 'label', title: 'Play times, credits, dates and catalog numbers' },
-      { type: 'label', title: 'come from Roon\'s internal protocol, as Deep Roon reads it' },
+      { type: 'label', title: 'Play times, credits, dates and catalog numbers,' },
+      { type: 'label', title: 'and the albums Roon hides, come from' },
+      { type: 'label', title: 'Roon\'s internal protocol, as Deep Roon reads it' },
       { type: 'label', title: 'It is unofficial and can break with a Roon update' },
       { type: 'dropdown', title: 'Richer data', setting: 'deep', values: [{ title: 'On', value: 'on' }, { title: 'Off', value: 'off' }] },
       { type: 'label', title: deep.stand },
@@ -200,7 +201,8 @@ async function laadAlbums() {
   } catch (e) { log('bibliotheek mislukt:', e.message); }
   laadt = false; toonStatus();
   kleurAlles();
-  deep.ververs(veranderd);
+  // Daarna de verborgen albums: die kent pas Deep Roon, dus hun hoezen kleuren na zijn lading.
+  deep.ververs(veranderd).then(() => kleurAlles());
 }
 setInterval(() => kern && laadAlbums(), 15 * 60 * 1000);
 
@@ -272,6 +274,23 @@ async function speel({ n, image: img, zone, track, action }) {
   return { ok: true, message: r.message ?? null };
 }
 
+// Een verborgen album staat niet in de officiële lijst: afspelen via het interne protocol (René, 29 okt: "wie zwijgt stemt
+// toe"). Play From Here = de tracks vanaf die plek, als losse tracks in de wachtrij.
+async function speelVerborgen({ deep: key, zone, track, action }) {
+  const z = zones.get(zone);
+  if (!z) throw new Error('Choose a zone');
+  if (!deep.aan) throw new Error('Hidden albums need Richer data');
+  if (action === 'Play From Here' && track > 0) {
+    const keys = (await deep.album(key)).tracks.slice(track).map(t => t.key);
+    await deep.speelTracks(keys, z.display_name);
+    return { ok: true };
+  }
+  const how = { 'Play Now': 'now', 'Play From Here': 'now', 'Shuffle': 'now', 'Add Next': 'next', 'Queue': 'queue' }[action];
+  if (!how) throw new Error(`"${action}" isn't available for a hidden album`);
+  await deep.speel(key, z.display_name, how, action === 'Shuffle');
+  return { ok: true };
+}
+
 // Wachten tot het album in de wachtrij van de zone staat (hooguit 4 s): het item met deze titel.
 // Alleen nieuwe items: speelt hetzelfde album al, dan staat de track ook nog in de oude wachtrij.
 async function zoekInWachtrij(zone, titel, aantal, oud = new Set()) {
@@ -321,17 +340,27 @@ function lees(req) {
     req.on('end', () => { try { ok(JSON.parse(b || '{}')); } catch { ok({}); } }); });
 }
 
-function hoes(key, maat) {
+// Een verborgen album heeft alleen Roon's interne beeldsleutel ("lzycaaaa"): die levert de Core zelf op /image/<sleutel>.jpg
+// (of verkleind .300.jpg) — op het adres van de extensie-API, dat de kopie van Deep Roon kent.
+const internBeeld = k => /^[a-z]{4,16}$/.test(k);
+async function hoes(key, maat) {
+  if (internBeeld(key)) {
+    const t = deep.core();
+    if (!t) throw new Error('Core unknown');
+    const r = await fetch(`http://${t.host}:${t.port}/image/${key}${maat <= 300 ? '.300' : ''}.jpg`);
+    if (!r.ok) throw new Error(`cover ${r.status}`);
+    return Buffer.from(await r.arrayBuffer());
+  }
   return new Promise((ok, mis) => image.get_image(key, { scale: 'fit', width: maat, height: maat, format: 'image/jpeg' },
     (err, type, body) => err ? mis(new Error(err)) : ok(body)));
 }
 
 // De kleuren in de achtergrond, vier tegelijk; 300 px is genoeg (de berekening verkleint toch tot 48×48).
-let kleurt = false;
+let kleurt = false, nogEens = false;
 async function kleurAlles() {
-  if (kleurt) return;
+  if (kleurt) { nogEens = true; return; }
   kleurt = true;
-  const rij = [...new Set(albums.map(a => a.image).filter(k => k && !kleuren[k]))];
+  const rij = [...new Set([...albums, ...deep.verborgen].map(a => a.image).filter(k => k && !kleuren[k]))];
   log('kleuren te berekenen:', rij.length);
   let gedaan = 0;
   const werker = async () => {
@@ -345,6 +374,7 @@ async function kleurAlles() {
   await Promise.all([werker(), werker(), werker(), werker()]);
   bewaar(); kleurt = false; toonStatus();
   log('kleuren klaar');
+  if (nogEens) { nogEens = false; kleurAlles(); }
 }
 
 // ---- de webpagina ----
@@ -367,13 +397,26 @@ http.createServer(async (req, res) => {
       }
       return r;
     });
+    // De verborgen albums als eigen ruggen (René, 29 okt): alleen met Richer data, ze komen uit het interne protocol.
+    for (const v of deep.verborgen) {
+      const k = v.image && kleuren[v.image];
+      rijen.push({ n: null, verborgen: true, title: v.title, artist: v.artist, image: v.image, ...(k && !k.fout ? k : {}), deep: v.key, ...deep.rug(v.key) });
+    }
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
     return res.end(JSON.stringify({
       core: kern?.display_name ?? null, loading: laadt, deep: deep.aan, deepBusy: deep.bezig, catorde: instellingen.catorde, catrug: instellingen.catrug, capsule: instellingen.capsule,
-      pending: albums.filter(a => a.image && !kleuren[a.image]).length, albums: rijen,
+      pending: rijen.filter(a => a.image && !kleuren[a.image]).length, albums: rijen,
     }));
   }
   if (url.pathname === '/api/zones') return stuur(res, 200, { zones: zoneLijst() });
+  if (url.pathname === '/api/album' && url.searchParams.get('hidden')) {
+    // Een verborgen album: alles uit het interne protocol, in de vorm van het officiële inlegvel.
+    try {
+      const d = await deep.album(url.searchParams.get('deep'));
+      const tracks = d.tracks.map(t => ({ nr: t.n == null ? '' : t.disc ? `${t.disc}-${t.n}` : String(t.n), title: t.title, artist: t.artist }));
+      return stuur(res, 200, { title: d.title, artist: d.artist, image: d.image, tracks, hidden: true, deep: d });
+    } catch (e) { return stuur(res, 409, { error: e.message }); }
+  }
   if (url.pathname === '/api/album') {
     if (!browse) return stuur(res, 503, { error: 'Not connected to Roon' });
     try {
@@ -399,7 +442,7 @@ http.createServer(async (req, res) => {
   }
   if (url.pathname === '/api/play' && req.method === 'POST') {
     if (!browse) return stuur(res, 503, { error: 'Not connected to Roon' });
-    try { const v = await lees(req); return stuur(res, 200, await opRij(() => speel(v))); }
+    try { const v = await lees(req); return stuur(res, 200, await opRij(() => v.hidden ? speelVerborgen(v) : speel(v))); }
     catch (e) { return stuur(res, 409, { error: e.message }); }
   }
   if (url.pathname === '/api/queue') {

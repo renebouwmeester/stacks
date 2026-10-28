@@ -5,3 +5,7 @@ export { album } from 'deep/roon/library';
 export { library } from 'deep/roon/focus';
 export { closeSoon, shutdown } from 'deep/core/session';
 export { zetGekoppeld } from './official';
+// Verborgen albums (29 okt 2026, René: "die hidden versies gewoon als Spine tonen"): staan niet in de officiële lijst, dus
+// afspelen via het interne protocol; en het adres van de Core voor hun hoezen (/image/<sleutel>.jpg).
+export { play, playTracks } from 'deep/roon/control';
+export { knownTarget } from 'deep/core/session';

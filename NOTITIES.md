@@ -72,6 +72,16 @@ De rugkleuren worden één keer per hoes berekend en bewaard in `data/kleuren.js
    `roon_album` (rustig, 40 ms ertussen; cache data/deep.json), de Date Added-volgorde uit `roon_library sort=added`.
    Gemeten op René's bibliotheek: 1858/1858 gekoppeld, speelduur 1858, releasedatum 1314 (anders het jaar),
    catalogusnummer 769, barcode 1836, hi-res 368. Koppelen op titel + artiest, eerst letterlijk.
+5. ✔ Verborgen albums als ruggen (29 okt). Eerste gebruiker (Mark): Stacks 2,990, Roon 3,101 — hij heeft "Show hidden
+   tracks and albums" aan om zijn MOFI-rip naast de Qobuz-versie van Blood on the Tracks te zien. De officiële API én een
+   standaard Focus-vraag geven alleen de zichtbare albums. René: "die hidden versies gewoon als Spine tonen", gekoppeld
+   aan Richer data; Brian reageerde twee keer niet op de vraag over het interne protocol: "wie zwijgt stemt toe".
+   Deep Roon kreeg `hidden: 'include' | 'only'` (AlbumQueryCriteria IncludeHidden/RequireHidden) en `play(…, includeHidden)`
+   (c5abf1d). De lijst komt nu mét verborgen albums (Date Added over alles); een tweede vraag zegt welke verborgen zijn;
+   die koppelen aan geen enkel officieel album. Ruggen zonder `n`; boekje uit `roon_album`; hoes en kleur via de Core
+   (`/image/<sleutel>.jpg`, `.300.jpg`); afspelen via het interne protocol (Play From Here = de tracks vanaf daar).
+   Feitenregel "Hidden in Roon", filterwoord `hidden`. Gemeten op Dylan: 2211 albums (= Roon's Home), 353 verborgen,
+   alle gekleurd en gelezen. Stacks speelt dus niet meer alleen-lezend via het interne protocol (README zegt het).
 
 ## Stap 3: wat de officiële API geeft (gemeten 26 okt)
 Een album in browse (`albums` › album): "Play Album" plus per track `"3. Titel"` met de uitvoerenden als subtitle — geen

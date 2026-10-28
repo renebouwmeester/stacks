@@ -398,7 +398,7 @@ function telDubbelen() { dubbelen = new Map(); for (const a of albums) dubbelen.
 // Het filter: elk woord moet ergens in het album voorkomen (Basso: "elk woord, zonder op hoofdletters of accenten te letten").
 let filterTekst = '';
 const plat = t => (t ?? '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-const hooi = a => plat([a.title, namen(a.artist), a.artist, a.label, a.catno, a.barcode, a.released?.slice(0, 4) ?? a.year, a.fmt, a.bron].filter(Boolean).join(' '));
+const hooi = a => plat([a.title, namen(a.artist), a.artist, a.label, a.catno, a.barcode, a.released?.slice(0, 4) ?? a.year, a.fmt, a.bron, a.verborgen && 'hidden'].filter(Boolean).join(' '));
 function gefilterd(lijst) {
   const woorden = plat(filterTekst).split(/\s+/).filter(Boolean);
   return woorden.length ? lijst.filter(a => { const h = hooi(a); return woorden.every(w => h.includes(w)); }) : lijst;
@@ -520,7 +520,7 @@ async function post(pad, body) {
 async function speel(a, action, track) {
   if (!zoneNu()) return meld('Choose a zone first');
   try {
-    await post('/api/play', { n: a.n, image: a.image, zone: zoneId, action, track });
+    await post('/api/play', a.verborgen ? { hidden: true, deep: a.deep, zone: zoneId, action, track } : { n: a.n, image: a.image, zone: zoneId, action, track });
     meld({ 'Play Now': `Playing on ${zoneNu().name}`, 'Shuffle': `Shuffling on ${zoneNu().name}`, 'Play From Here': `Playing on ${zoneNu().name}`,
            'Add Next': 'Playing next', 'Queue': 'Added to the queue' }[action] ?? 'Done');
     setTimeout(haalZones, 800);
@@ -624,7 +624,7 @@ function bouwOpen(a, d) {
   // De feitenregel: jaar, label, catalogusnummer, tracks, speelduur in onze maat (infoInOnzeMaat: "1 h 18 min").
   const dp = d.deep ?? {};
   info.textContent = [dp.year ?? a.year, dp.label ?? a.label, dp.catno ?? a.catno, a.bron,
-    `${d.tracks.length} ${d.tracks.length === 1 ? 'track' : 'tracks'}`, onzeDuur(dp.len ?? a.len)].filter(Boolean).join(' · ');
+    `${d.tracks.length} ${d.tracks.length === 1 ? 'track' : 'tracks'}`, onzeDuur(dp.len ?? a.len), a.verborgen && 'Hidden in Roon'].filter(Boolean).join(' · ');
   voet.append(info, knoppenRij(a));
   achter.append(k, inleg, vul, voet);
   el.append(img, achter);
@@ -656,6 +656,9 @@ function kolommen(o) {
   o.lijst.style.gridTemplateColumns = 'repeat(2, minmax(0, 1fr))';
 }
 
+// Een verborgen album (René, 29 okt) komt helemaal uit het interne protocol; de rest via zijn plek in Roon's lijst.
+const albumAdres = a => a.verborgen ? `/api/album?hidden=1&deep=${a.deep}`
+  : `/api/album?n=${a.n}&image=${encodeURIComponent(a.image ?? '')}${a.deep ? `&deep=${a.deep}` : ''}`;
 let bezig = null;
 async function openAlbum(rug) {
   const a = albumVan.get(rug), k = sleutel(a);
@@ -664,9 +667,9 @@ async function openAlbum(rug) {
   bezig = k;
   let d;
   try {
-    let r = await fetch(`/api/album?n=${a.n}&image=${encodeURIComponent(a.image ?? '')}${a.deep ? `&deep=${a.deep}` : ''}`);
+    let r = await fetch(albumAdres(a));
     // De bibliotheek veranderde: de extensie leest hem opnieuw; even later nog eens.
-    if (r.status === 409) { await new Promise(ok => setTimeout(ok, 2500)); await haal(true); const b = albums.find(x => sleutel(x) === k); if (b) r = await fetch(`/api/album?n=${b.n}&image=${encodeURIComponent(b.image ?? '')}${b.deep ? `&deep=${b.deep}` : ''}`); }
+    if (r.status === 409) { await new Promise(ok => setTimeout(ok, 2500)); await haal(true); const b = albums.find(x => sleutel(x) === k); if (b) r = await fetch(albumAdres(b)); }
     d = await r.json();
     if (!r.ok) throw new Error(d.error);
   } catch (e) { bezig = null; return meld(e.message || 'Roon did not answer'); }
