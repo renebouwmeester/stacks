@@ -30,6 +30,11 @@ Bovenaan wat eerst moet; afgevinkt gaat naar het logboek in NOTITIES.md (README.
 - [ ] Volgorde: release-klaar → repo openbaar + Docker + bèta met de forumvragers → post in Roon Extensions → Extension
       Manager.
 
+## Bladwijzers (forum, 29 okt 2026) — onderzocht, nog niet besloten
+- [ ] Roon's bladwijzers als keuzelijst (Ander; Marks lijst: bron, genre, opslag, tags, DSD, multichannel). Gemeten en
+      uitgeschreven in BLADWIJZERS.md: ze staan in Broker.ClientData, Focus op albums is te vertalen (opslag en tags via
+      een opzoekstap), ~een middag. Wachten op René's besluit.
+
 ## Omwegen die bij anderen anders kunnen uitvallen
 - Play From Here: album Play Now, dan `play_from_here` naar de track in de wachtrij (Roon biedt het bij albumtracks niet
   aan); track 1 klinkt even. Roon antwoordt op `play_from_here` niet (log 26 okt): Stacks kijkt of het item vooraan staat.
