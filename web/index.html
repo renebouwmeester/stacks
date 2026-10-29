@@ -627,7 +627,7 @@ function bouwOpen(a, d) {
   // Het jaar van deze uitgave naast het oorspronkelijke, als het anders is (René, 29 okt: "1975 · 2014 edition").
   const jaar = (dp.released ?? a.released)?.slice(0, 4) ?? dp.year ?? a.year, editie = (dp.editie ?? a.editie)?.slice(0, 4);
   // Alleen een LATERE uitgave: Roon geeft soms een eerder jaar (A Love Supreme: 1965, "this release" 1964).
-  info.textContent = [jaar, editie && jaar && Number(editie) > Number(jaar) && `${editie} edition`, dp.label ?? a.label, dp.catno ?? a.catno, a.bron,
+  info.textContent = [jaar, editie && jaar && Number(editie) > Number(jaar) && `${editie} edition`, dp.version ?? a.versie, dp.label ?? a.label, dp.catno ?? a.catno, a.bron,
     `${d.tracks.length} ${d.tracks.length === 1 ? 'track' : 'tracks'}`, onzeDuur(dp.len ?? a.len), a.verborgen && 'Hidden in Roon'].filter(Boolean).join(' · ');
   voet.append(info, knoppenRij(a));
   achter.append(k, inleg, vul, voet);
