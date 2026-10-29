@@ -376,8 +376,9 @@ function vul(el, a) {
   em.textContent = fmt ?? ''; em.hidden = !fmt;
   duur.textContent = duurTekst(a.len); duur.hidden = !a.len;
   // De bron op de rug alleen als hetzelfde album er vaker staat (René: "twee versies — 1 van de 1, 1 van de ander").
+  // Met Roon's versie erbij (29 okt, forum): "Local · MFSL SACD" tegenover "Qobuz".
   const bron = el.querySelector('.bron'), dubbel = a.bron && (dubbelen.get(dubbelSleutel(a)) ?? 0) > 1;
-  bron.textContent = dubbel ? a.bron : ''; bron.hidden = !dubbel;
+  bron.textContent = dubbel ? [a.bron, a.versie].filter(Boolean).join(' · ') : ''; bron.hidden = !dubbel;
   // Het nummer rechts in een eigen kolom: bij de volgorde Catalogue Number (zonder nummer de barcode, stiller), of altijd
   // als dat in Roon zo is ingesteld (dan alleen waar het er is).
   const opNummer = orde === 'catno', toon = opNummer || catRug === 'always';
@@ -398,7 +399,7 @@ function telDubbelen() { dubbelen = new Map(); for (const a of albums) dubbelen.
 // Het filter: elk woord moet ergens in het album voorkomen (Basso: "elk woord, zonder op hoofdletters of accenten te letten").
 let filterTekst = '';
 const plat = t => (t ?? '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-const hooi = a => plat([a.title, namen(a.artist), a.artist, a.label, a.catno, a.barcode, a.released?.slice(0, 4) ?? a.year, a.fmt, a.bron, a.verborgen && 'hidden'].filter(Boolean).join(' '));
+const hooi = a => plat([a.title, namen(a.artist), a.artist, a.label, a.catno, a.barcode, a.released?.slice(0, 4) ?? a.year, a.fmt, a.bron, a.versie, a.verborgen && 'hidden'].filter(Boolean).join(' '));
 function gefilterd(lijst) {
   const woorden = plat(filterTekst).split(/\s+/).filter(Boolean);
   return woorden.length ? lijst.filter(a => { const h = hooi(a); return woorden.every(w => h.includes(w)); }) : lijst;
@@ -623,7 +624,10 @@ function bouwOpen(a, d) {
   const info = document.createElement('div'); info.className = 'info';
   // De feitenregel: jaar, label, catalogusnummer, tracks, speelduur in onze maat (infoInOnzeMaat: "1 h 18 min").
   const dp = d.deep ?? {};
-  info.textContent = [dp.year ?? a.year, dp.label ?? a.label, dp.catno ?? a.catno, a.bron,
+  // Het jaar van deze uitgave naast het oorspronkelijke, als het anders is (René, 29 okt: "1975 · 2014 edition").
+  const jaar = (dp.released ?? a.released)?.slice(0, 4) ?? dp.year ?? a.year, editie = (dp.editie ?? a.editie)?.slice(0, 4);
+  // Alleen een LATERE uitgave: Roon geeft soms een eerder jaar (A Love Supreme: 1965, "this release" 1964).
+  info.textContent = [jaar, editie && jaar && Number(editie) > Number(jaar) && `${editie} edition`, dp.label ?? a.label, dp.catno ?? a.catno, a.bron,
     `${d.tracks.length} ${d.tracks.length === 1 ? 'track' : 'tracks'}`, onzeDuur(dp.len ?? a.len), a.verborgen && 'Hidden in Roon'].filter(Boolean).join(' · ');
   voet.append(info, knoppenRij(a));
   achter.append(k, inleg, vul, voet);
