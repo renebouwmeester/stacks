@@ -1,6 +1,6 @@
 {
   "name": "stacks-for-roon",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Stacks for Roon – virtual crate digging! A web app served by a Roon extension.",
   "type": "commonjs",
