@@ -3,6 +3,8 @@
 #   docker/bouw.sh            → alleen bouwen (laden kan niet bij twee platforms; dit controleert dat het bouwt)
 #   docker/bouw.sh lokaal     → alleen voor dit platform, geladen als stacks:proef (om meteen te proberen)
 #   docker/bouw.sh push       → bouwen en naar Docker Hub (renebouwmeester/stacks:<versie> en :latest)
+# De push in een Terminal op Dylan zelf, niet via ssh (7 nov 2026, 0.3.1): Docker Desktop bewaart de Docker Hub-login in de
+# sleutelhanger, en een ssh-sessie mag daar niet bij ('the current session does not allow user interaction').
 set -euo pipefail
 cd "$(dirname "$0")/.."
 VERSIE=$(node -p "require('./package.json').version")
