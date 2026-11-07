@@ -48,7 +48,9 @@
   .orde button { appearance: none; border: 0; background: none; color: var(--tekst); font: inherit; font-size: 13px;
     padding: 5px 12px; border-radius: 6px; cursor: pointer; }
   .orde button[aria-pressed="true"] { background: rgba(255,255,255,.18); font-weight: 600; }
-  #stapel { display: flex; flex-direction: column; gap: 1px; padding-bottom: env(safe-area-inset-bottom); }
+  /* Onderaan ruimte voor de speelcapsule (18 + 56 + lucht): de laatste rug kan er altijd onder vandaan scrollen. Op iPad en iPhone
+     deed de safe area dat al; op een desktop was die 0 (forum, Firefox op Linux, 7 nov 2026). */
+  #stapel { display: flex; flex-direction: column; gap: 1px; padding-bottom: calc(env(safe-area-inset-bottom) + 92px); }
   .rug { display: flex; align-items: center; gap: 12px; height: var(--h, var(--dikte)); padding: 0 var(--rand-r) 0 var(--rand);
     background-color: var(--bg, #383838);
     background-image: linear-gradient(to bottom, rgba(255,255,255,.10), transparent 50%, rgba(0,0,0,.18));
