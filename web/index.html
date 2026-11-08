@@ -321,8 +321,12 @@ const vergelijk = new Intl.Collator(undefined, { sensitivity: 'base', numeric: t
 const zonderLidwoord = t => (/^(the|a|an|de|het|een)\s+(.+)$/i.exec(t ?? '') || [, , t ?? ''])[2];
 const sleutel = a => a.image || (a.artist + '\u0000' + a.title);
 // Roon schrijft samenwerkingen als "A/B/C" (soms met spaties); op de rug zoals Apple: "A, B & C".
+// Een naam met een streep erin blijft heel (8 nov 2026, forum: "AC/DC" werd "AC & DC"): Roon schrijft ook samenwerkingen
+// zonder spaties ("Michael Wollny/Eva Kruse/Eric Schaefer"), dus de maat is de lengte — een deel van één of twee tekens is
+// geen eigen artiest.
 function namen(s) {
-  const n = (s ?? '').split('/').map(x => x.trim()).filter(Boolean);
+  const delen = (s ?? '').split('/').map(x => x.trim()).filter(Boolean);
+  const n = delen.some(x => x.length <= 2) ? [(s ?? '').trim()] : delen;
   return n.length > 1 ? n.slice(0, -1).join(', ') + ' & ' + n.at(-1) : (n[0] ?? '');
 }
 
