@@ -49,5 +49,5 @@ Bovenaan wat eerst moet; afgevinkt gaat naar het logboek in NOTITIES.md (README.
 ## Volgende release (René, 8 nov 2026: "in de loop van de week een rustige release")
 - [x] AC/DC bleef niet heel op de rug ("AC & DC") — opgelost 2ac209f, op Dylan, nog niet in Docker.
 - [x] README: sectie Logs (c97c78a).
-- [ ] Reactie van de forumgebruiker afwachten: lengte en formaat op sommige ruggen leeg (zijn AC/DC zonder, Highway to Hell en Back in Black met). Status van Richer data + `docker logs` gevraagd; vermoeden: de koppeling titel+artiest mislukt.
+- [x] Koppeling steviger (hoes + kale titel) en een logregel voor wat niet koppelt (8 nov). Was: reactie van de forumgebruiker afwachten: lengte en formaat op sommige ruggen leeg (zijn AC/DC zonder, Highway to Hell en Back in Black met). Status van Richer data + `docker logs` gevraagd; vermoeden: de koppeling titel+artiest mislukt.
 - [ ] Daarna versie ophogen en het image pushen (`docker/bouw.sh`, in Terminal op Dylan).
