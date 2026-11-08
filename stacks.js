@@ -31,6 +31,7 @@ fs.mkdirSync(DATA, { recursive: true });
 }
 const KLEURBESTAND = path.join(DATA, 'kleuren.json');
 
+let losWas = 0;   // hoeveel albums de vorige lading niet koppelde (zie de albumlijst)
 function log(...a) { console.log(new Date().toISOString().slice(11, 19), ...a); }
 
 // ---- de kleuren, per image_key (een hoes verandert niet onder dezelfde sleutel) ----
@@ -391,17 +392,19 @@ http.createServer(async (req, res) => {
   if (url.pathname === '/api/albums') {
     // Deep Roon per album (als hij er is): koppelen op titel + artiest; twee albums met dezelfde naam krijgen de
     // sleutels in volgorde.
-    const gezien = new Map();
+    const gezien = new Map(), los = [];
     const rijen = albums.map(a => {
       const k = a.image && kleuren[a.image];
       let r = k && !k.fout ? { ...a, ...k } : { ...a };
       if (deep.aan) {
         const nk = a.title + '\u0000' + a.artist, v = gezien.get(nk) ?? 0; gezien.set(nk, v + 1);
-        const dk = deep.koppel(a.title, a.artist, v), d = deep.rug(dk);
-        if (d) r = { ...r, deep: dk, ...d };
+        const dk = deep.koppel(a.title, a.artist, v, a.image), d = deep.rug(dk);
+        if (d) r = { ...r, deep: dk, ...d }; else if (deep.aantal) los.push(`${a.artist} — ${a.title}`);
       }
       return r;
     });
+    // Wat niet koppelt, één keer per lading in de log (8 nov 2026): dan zegt een log van een gebruiker meteen waar het misgaat.
+    if (los.length && los.length !== losWas) { losWas = los.length; log('deep roon:', los.length, 'albums zonder koppeling, bijv.', los.slice(0, 5).join(' | ')); }
     // De verborgen albums als eigen ruggen (René, 29 okt): alleen met Richer data, ze komen uit het interne protocol.
     for (const v of deep.verborgen) {
       const k = v.image && kleuren[v.image];
