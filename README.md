@@ -106,6 +106,17 @@ node stacks.js
 The first time, Stacks computes the colors of all your covers, about ten per second. With Richer data on, it also reads
 each album once, about fourteen per second. The spines fill in while you look.
 
+### Logs
+
+Stacks writes its log to the console. In Docker:
+
+```bash
+docker logs --tail 300 stacks
+```
+
+On a NAS, the Docker app shows it too, in the container's Log tab. Run from source, it's the output in the terminal where
+`node stacks.js` runs. When something looks off, that log is the most useful thing to send along.
+
 ## Settings
 
 All settings are in Roon › Settings › Extensions › Stacks:
