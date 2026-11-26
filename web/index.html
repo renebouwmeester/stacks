@@ -711,9 +711,18 @@ const filterVak = document.querySelector('.filter'), filterVeld = document.getEl
 filterKnop.innerHTML = svg('zoek'); filterVak.querySelector('.glas').innerHTML = svg('zoek'); filterVak.querySelector('.wis').innerHTML = svg('wis');
 // Eerst tekenen, dan de focus zonder te scrollen (#2): focus() in dezelfde beurt dwong een layout van de hele pagina af, en op
 // Android schoof hij ook nog naar het veld. select() alleen als er iets te selecteren is.
+// De stapel gaat voor die ene focus op content-visibility: hidden (#2, Android/Vivaldi, 24 nov 2026): focus() ontgrendelde anders
+// de ruggen met content-visibility: auto een voor een, elk met een volledige layout (~65 ms per rug, bij ~9.000 ruggen
+// minutenlang). Hidden geeft de stapel size containment en dus hoogte 0; contain-intrinsic-size houdt zijn hoogte vast, zodat de
+// scrollpositie blijft. Een beeld later staat alles terug en zijn de ruggen weer 'auto'.
 function openFilter() {
   filterVak.hidden = false;
-  requestAnimationFrame(() => { filterVeld.focus({ preventScroll: true }); if (filterVeld.value) filterVeld.select(); });
+  stapel.style.containIntrinsicSize = 'auto ' + stapel.offsetHeight + 'px';
+  stapel.style.contentVisibility = 'hidden';
+  requestAnimationFrame(() => {
+    filterVeld.focus({ preventScroll: true }); if (filterVeld.value) filterVeld.select();
+    requestAnimationFrame(() => { stapel.style.contentVisibility = ''; stapel.style.containIntrinsicSize = ''; });
+  });
 }
 function sluitFilter() { filterVeld.value = ''; filterTekst = ''; filterVak.hidden = true; teken(); filterVeld.blur(); }
 filterKnop.addEventListener('click', openFilter);
